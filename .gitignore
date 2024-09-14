@@ -1,3 +1,6 @@
 /client/private_key.pem
 /client/public_key.pem
 /client/client_state.json
+/client/server_info.json
+
+/server/server_state.json
