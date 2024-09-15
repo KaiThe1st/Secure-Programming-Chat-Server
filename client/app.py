@@ -1,9 +1,16 @@
 import asyncio
 import websockets
 import json
+import tkinter as tk
 
 from parseMessage import ParseOutMessage
 from parseMessage import ParseInMessage
+
+
+class G40ChatApp:
+    def __init__(self, app):
+        self.app = app
+        pass
 
 
 # Message handler

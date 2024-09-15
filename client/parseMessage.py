@@ -2,6 +2,8 @@ import json
 from messageEncoder import encrypt_message
 
 
+
+
 def PreProcessingOutMessage ():
     pass
 
@@ -17,18 +19,32 @@ def ParseOutMessage (message, type, subtype):
         
         parsedMessage["data"] = {}
         parsedMessage["data"]["type"] = subtype
-        # When connecting to the server
+        
+        # When connecting to the server: I think this is done
         if subtype == "hello":
             with open("./public_key.pem", 'r') as pub_k:
                 public_key = pub_k.read()
             parsedMessage["data"]["public_key"] = public_key
             
-            
+        # No encrytion or encoding yet
         if subtype == "chat":
-            parsedMessage["data"]["chat"] = message
+            parsedMessage["data"]["chat"] = {}
+            parsedMessage["data"]["destination_server"] = []
+            parsedMessage["data"]["iv"] = {}
+            parsedMessage["data"]["symm_keys"] = []
+            
+            
+            parsedMessage["data"]["chat"]["participants"] = []
+            parsedMessage["data"]["chat"]["message"] = message
+            
             
         if subtype == "public_chat":
-            parsedMessage["data"]["sender"] = 123 
+            with open("./public_key.pem", 'r') as pub_k:
+                public_key = pub_k.read()
+            # Need encoder and SHA-256
+            parsedMessage["data"]["sender"] = public_key
+            parsedMessage["data"]["message"] = message
+            
         
         # Random stuff for now
         parsedMessage["counter"] = state_data["counter"]

@@ -3,4 +3,6 @@
 /client/client_state.json
 /client/server_info.json
 
-/server/server_state.json
+/server/state.json
+/client/appwui1.py
+/client/localtestfile.py
