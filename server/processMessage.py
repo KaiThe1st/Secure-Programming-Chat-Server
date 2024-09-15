@@ -14,13 +14,15 @@ def ProcessInMessage(message, client_id):
     parsed_message = message.decode('utf-8')
     parsed_message = json.loads(parsed_message)
     
-    with open("./server_state.json", 'r') as server_state_read:
+    with open("./state.json", 'r') as server_state_read:
         server_state = json.load(server_state_read)
     
     if parsed_message["type"] == "signed_data":
         
         # Parser for chat
         if parsed_message["data"]["type"] == "chat":
+            
+            print("recv")
             type = "signed_data_chat"
             encoded_chat = parsed_message["data"]["chat"]
             pass
@@ -69,7 +71,7 @@ def ProcessInMessage(message, client_id):
         print(f"Message has invalid type {parsed_message["type"]}")
     
     
-    with open("./server_state.json", 'w') as server_state_write:
+    with open("./state.json", 'w') as server_state_write:
         json.dump(server_state, server_state_write, indent=4)  
     
     return type, status, log_message, sent_from

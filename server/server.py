@@ -8,7 +8,7 @@ import json
 
 online_users = {}
 
-with open("./server_state.json", 'r') as server_state:
+with open("./state.json", 'r') as server_state:
     state = json.load(server_state)
 
 # WebSocket server handler
