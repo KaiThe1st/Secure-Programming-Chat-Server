@@ -22,16 +22,18 @@ def ProcessInMessage(message, client_id):
         # Parser for chat
         if parsed_message["data"]["type"] == "chat":
             
-            print("recv")
+            # print("recv")
             type = "signed_data_chat"
             encoded_chat = parsed_message["data"]["chat"]
-            pass
+            print(parsed_message)
+            print(encoded_chat)
+            
                 
         # Parser for public_chat
         if parsed_message["data"]["type"] == "public_chat":
             type = "signed_data_public_chat"
             encoded_chat = parsed_message["data"]["chat"]
-            pass
+            # pass
         
         
         # Parser for server connection
@@ -84,10 +86,18 @@ def AssembleOutwardMessage (type, message):
     outward_message["type"] = type
     
     if type == "client_list":
-        outward_message["servers"] = message
+        outward_message["servers"] = [
+            {
+                "address": "<Address of server>",
+                "clients": [
+                    "<Exported RSA public key of client>",
+                ]
+            },
+        ]
+        
 
-    if type == "chat":
-        pass
+    if type == "signed_data_chat":
+        outward_message["data"] = message
     
     outward_message_json = json.dumps(outward_message).encode('utf-8')
     return outward_message_json

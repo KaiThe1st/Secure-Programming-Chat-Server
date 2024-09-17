@@ -18,7 +18,7 @@ def encrypt_message(plaintext):
     ciphertext, authTag = cipher.encrypt_and_digest(plaintext)
     return(ciphertext, authTag, iv, sym_key)
 
-def decrypt_message(ciphertext, authTag, sym_key):
+def decryptMessage(ciphertext, authTag, sym_key):
     # (ciphertext,  authTag, nonce) = ciphertext
     cipher = AES.new(sym_key, AES.MODE_GCM , iv)
     plain_text = cipher.decrypt(ciphertext)

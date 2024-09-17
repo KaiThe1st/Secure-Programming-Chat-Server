@@ -35,6 +35,10 @@ async def handler(websocket):
                 return_message = AssembleOutwardMessage("client_list", all_online_users)
                 
                 await websocket.send(return_message)
+            elif type == "signed_data_chat":
+                return_message = AssembleOutwardMessage("signed_data_chat", all_online_users)
+                await websocket.send(return_message)
+                
             else:
                 await websocket.send(f'ACK: {log_message}')
 

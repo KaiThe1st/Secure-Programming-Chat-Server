@@ -6,7 +6,11 @@ import json
 import sys
 from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtWidgets import QMainWindow, QGridLayout, QVBoxLayout
+import logging
 
+# logging.basicConfig(level=logging.DEBUG)
+
+ONLINE_USERS = []
 
 
 class G40chatApp(QMainWindow):
@@ -81,18 +85,20 @@ class WebsocketConnection(QtCore.QThread):
                 print('-------------------')
 
                 # Connection request to a server
-                helloMessage = ParseOutMessage("", "signed_data", "hello")
+                helloMessage = ParseOutMessage("", "signed_data", "hello", [], ONLINE_USERS)
                 await self.websocket.send(helloMessage)
                 response = await self.websocket.recv()
                 print(response)
 
                 # Request online clients in approachable servers
-                requestClientList = ParseOutMessage("", "client_list_request", "")
+                requestClientList = ParseOutMessage("", "client_list_request", "", [], ONLINE_USERS)
                 await self.websocket.send(requestClientList)
                 response = await self.websocket.recv()
                 response = ParseInMessage(response)
                 print(response)
-
+                
+                
+                # Continuously waiting for message from server
                 while True:
                     try:
                         message = await websocket.recv()  
@@ -110,7 +116,13 @@ class WebsocketConnection(QtCore.QThread):
     # A handler when the UI receive a send request
     # Assign the send functionality to another thread
     def send_message(self, message):
-        parsedMessage = ParseOutMessage(message, "signed_data", "chat")
+        parsedMessage = ParseOutMessage(message, "signed_data", "chat", [], ONLINE_USERS)
+        asyncio.run_coroutine_threadsafe(self.websocket_send(parsedMessage), self.loop)
+    
+    # 
+    # 
+    def send_public_message(self, message):
+        parsedMessage = ParseOutMessage(message, "signed_data", "public_chat", [], ONLINE_USERS)
         asyncio.run_coroutine_threadsafe(self.websocket_send(parsedMessage), self.loop)
 
     # Actual function that send the message
