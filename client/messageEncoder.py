@@ -38,7 +38,7 @@ def encryptMessage(plaintext, participants, online_users):
     return(cipher_chat, authTag, iv, SYM_KEY)
 
 
-
+#my part
 
 # def decrypt_message(ciphertext, authTag, sym_key):
 #     # (ciphertext,  authTag, nonce) = ciphertext

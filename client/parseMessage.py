@@ -48,6 +48,7 @@ def ParseOutMessage (message, type, subtype, receiver, online_users):
             parsedMessage["data"]["chat"] = {}
             parsedMessage["data"]["destination_server"] = []
             parsedMessage["data"]["iv"] = ""
+            parsedMessage["authTag"] = ""
             parsedMessage["data"]["symm_keys"] = []
             
             
@@ -57,6 +58,8 @@ def ParseOutMessage (message, type, subtype, receiver, online_users):
             cipher_chat, authTag, iv, sym_key = encryptMessage(message, receiver, online_users)
             parsedMessage["data"]["chat"] = str(cipher_chat)
             parsedMessage["data"]["iv"] = str(b64encode(iv))
+            parsedMessage["data"]["authTag"] = str(b64encode(authTag))
+            parsedMessage["data"]["symm_keys"] = str(b64encode(sym_key))
             print(parsedMessage)
             
             

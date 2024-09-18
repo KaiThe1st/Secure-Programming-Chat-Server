@@ -8,7 +8,7 @@ from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtWidgets import QMainWindow, QGridLayout, QVBoxLayout
 import logging
 
-# logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.DEBUG)
 
 ONLINE_USERS = []
 
@@ -68,7 +68,7 @@ class WebsocketConnection(QtCore.QThread):
 
 
     async def websocket_connect(self):
-        ip = "127.0.0.1"
+        ip = "localhost"
         port = 8080
         with open("./server_info.json", 'r') as server_info:
             data = json.load(server_info)
