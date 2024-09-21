@@ -8,7 +8,7 @@ def ProcessInMessage(message, client_id):
     type = "received"
     status = 1
     log_message = "Message received."
-    return_message = ""      
+    # return_message = ""      
     sent_from = client_id
     
     parsed_message = message.decode('utf-8')
@@ -62,8 +62,10 @@ def ProcessInMessage(message, client_id):
                         break
 
             status = 1 
-            log_message = f"Connection Establised"      
-
+            log_message = f"Connection Establised"     
+        
+        if parsed_message["data"]["type"] == "server_hello":
+            type = "signed_data_server_hello"
             
     elif parsed_message["type"] == "client_list_request":
         type = "client_list_request"
@@ -76,7 +78,7 @@ def ProcessInMessage(message, client_id):
     with open("./state.json", 'w') as server_state_write:
         json.dump(server_state, server_state_write, indent=4)  
     
-    return type, status, log_message, sent_from
+    return type, status, log_message, sent_from, parsed_message
 
 
 
@@ -86,14 +88,7 @@ def AssembleOutwardMessage (type, message):
     outward_message["type"] = type
     
     if type == "client_list":
-        outward_message["servers"] = [
-            {
-                "address": "<Address of server>",
-                "clients": [
-                    "<Exported RSA public key of client>",
-                ]
-            },
-        ]
+        outward_message["servers"] = message
         
 
     if type == "signed_data_chat":
@@ -103,24 +98,18 @@ def AssembleOutwardMessage (type, message):
     return outward_message_json
 
 
-def ProcessOnlineUsersList(innerdata, master_server, outterdata):
+def ProcessOnlineUsersList(online_users):
     client_list = []
     
-    # Intra server online users
-    intra_server_onl_u = {}
-    intra_server_onl_u['address'] = master_server["ip"] + ":" + master_server["port"]
-    intra_server_onl_u['clients'] = []
-    
-    
-    for intra_client in innerdata:
-        intra_server_onl_u['clients'].append(master_server["clients"][intra_client]["public_key"])
+    for server in online_users:
+        online_users_in_server = {}
+        online_users_in_server["address"] = server
+        online_users_in_server["clients"] = []
+        for client in online_users[server]:
+            online_users_in_server["clients"].append(online_users[server][client]["public_key"])
+            
+        client_list.append(online_users_in_server)
         
-    # Need Inter server online users logic here
-    # inter_server_onl_u = {}
-    
-    
-    client_list.append(intra_server_onl_u)
-    # client_list.append(inter_server_onl_u)
         
     return client_list
 
