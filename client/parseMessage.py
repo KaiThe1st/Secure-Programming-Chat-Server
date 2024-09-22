@@ -46,7 +46,7 @@ def ParseOutMessage (message, type, subtype, receiver, online_users):
         # No encrytion or encoding yet
         if subtype == "chat":
             parsedMessage["data"]["chat"] = {}
-            parsedMessage["data"]["destination_server"] = []
+            parsedMessage["data"]["destination_servers"] = []
             parsedMessage["data"]["iv"] = ""
             parsedMessage["data"]["symm_keys"] = []
             
