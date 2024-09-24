@@ -28,7 +28,7 @@ def ProcessInMessage(message, client_id):
     
     
     if type == "signed_data":
-        if sent_from != -1 and ValidateMessage(parsed_message["counter"], server_state["clients"][sent_from]["counter"]) == False:
+        if sent_from != "-1" and ValidateMessage(parsed_message["counter"], server_state["clients"][sent_from]["counter"]) == False:
             return None, None, None, None, None
         
         # Parser for chat
@@ -125,17 +125,17 @@ def AssembleOutwardMessage (type, subtype, message):
     return outward_message_json
 
 
-def ProcessOnlineUsersList(internal_online_users, external_online_users):
+def ProcessOnlineUsersList(internal_online_users, masterserver_address, external_online_users):
     client_list = []
     
-    for server in internal_online_users:
-        online_users_in_server = {}
-        online_users_in_server["address"] = server
-        online_users_in_server["clients"] = []
-        for client in internal_online_users[server]:
-            online_users_in_server["clients"].append(internal_online_users[server][client]["public_key"])
+    online_users_in_server = {}
+    online_users_in_server["clients"] = []
+    
+    online_users_in_server["address"] = masterserver_address
+    for id in internal_online_users:
+        online_users_in_server["clients"].append(internal_online_users[id]["public_key"])
             
-        client_list.append(online_users_in_server)
+    client_list.append(online_users_in_server)
     
     for server in external_online_users:
         external_client = {}

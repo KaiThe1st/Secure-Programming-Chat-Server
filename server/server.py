@@ -90,14 +90,21 @@ async def handler(websocket):
                         await websocket.close(code=4000, reason="Limited one client on a host")
                         continue
                 
-                if sent_from not in internal_online_users:
+                if sent_from not in internal_online_users and sent_from != -1:
                     # print(websocket)
                     internal_online_users[sent_from] = {}
                     internal_online_users[sent_from]["socket"] = websocket
                     internal_online_users[sent_from]["public_key"] = parsed_message["data"]["public_key"]
                     
+                    for client_id in internal_online_users:
+                        if internal_online_users[client_id]["socket"] != websocket:
+                            
+                            all_online_users = ProcessOnlineUsersList(internal_online_users, SELF_ADDRESS, [])
+                            return_message = AssembleOutwardMessage("client_list", "", all_online_users)
+                            await internal_online_users[client_id]["socket"].send(return_message)
+                    
                     await websocket.send("Connection established")
-            
+
             # HANDLE SERVER HELLO
             elif type == "signed_data_server_hello":
                 sending_server = parsed_message["data"]["sender"]
@@ -114,27 +121,28 @@ async def handler(websocket):
                 client_update_request = AssembleOutwardMessage("client_update_request", "", "")
                 external_clients = []
                 
-                for server_address in ONLINE_NEIGHBOURS:
-                    try:
-                        async with websockets.connect(f'ws://{dest}') as to_server_websocket:
-                            await to_server_websocket.send(client_update_request)
-                            client_update_response = await to_server_websocket.recv()
-                            type, status, log_message, sent_from, parsed_client_list = ProcessInMessage(client_update_response, "external_server")
-                            external_clients.append(parsed_client_list["servers"])
+                # for server_address in ONLINE_NEIGHBOURS:
+                #     try:
+                #         async with websockets.connect(f'ws://{dest}') as to_server_websocket:
+                #             await to_server_websocket.send(client_update_request)
+                #             client_update_response = await to_server_websocket.recv()
+                #             type, status, log_message, sent_from, parsed_client_list = ProcessInMessage(client_update_response, "external_server")
+                #             external_clients.append(parsed_client_list["servers"])
                             
                         
-                    except:
-                        pass
+                #     except:
+                #         pass
                 
                 
-                all_online_users = ProcessOnlineUsersList(internal_online_users, external_online_users)
+                all_online_users = ProcessOnlineUsersList(internal_online_users, SELF_ADDRESS, external_online_users)
+                
                 
                 return_message = AssembleOutwardMessage("client_list", "", all_online_users)
                 await websocket.send(return_message)
             
             # HANDLE REQUEST FOR CLIENT UPDATE FROM SERVERS
             elif type == "client_update_request":
-                internal_clients = ProcessOnlineUsersList(internal_online_users, {})
+                internal_clients = ProcessOnlineUsersList(internal_online_users, SELF_ADDRESS, {})
                 return_message = AssembleOutwardMessage("client_update", "", internal_clients)
                 await websocket.send(return_message)
             
@@ -163,6 +171,7 @@ async def handler(websocket):
                             if dest == prev:
                                 continue
                             try:
+                                
                                 async with websockets.connect(f'ws://{dest}') as to_server_websocket:
                                     await to_server_websocket.send(message)
                                     print("hello")
@@ -172,8 +181,8 @@ async def handler(websocket):
                         
                         break
 
-                if isFromServer == True:
-                    continue
+                # if isFromServer == True:
+                #     continue
                 
                 # In case the message is sent from a server
                 for client_id in internal_online_users:

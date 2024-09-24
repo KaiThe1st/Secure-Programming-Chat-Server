@@ -49,7 +49,7 @@ def ParseOutMessage (message, type, subtype, receiver, online_users):
             
         # No encrytion or encoding yet
         if subtype == "chat":
-            parsedMessage["data"]["destination_server"] = []
+            parsedMessage["data"]["destination_servers"] = []
             parsedMessage["data"]["iv"] = ""
             parsedMessage["data"]["symm_keys"] = []
             parsedMessage["data"]["chat"] = {}
@@ -107,19 +107,20 @@ def ParseInMessage (message):
 
 
     
-    if parsed_message["type"] == "signed_data_chat":
-        try:
-            ciphertext = b64decode(parsed_message["data"]["chat"])
-            iv = b64decode(parsed_message["data"]["iv"])
-            enc_key =  b64decode(parsed_message["data"]["enc_keys"])
-        except Exception as e:
-            raise ValueError(e)
+    if parsed_message["type"] == "signed_data":
+        if parsed_message["data"]["type"] == "chat":
+            try:
+                ciphertext = b64decode(parsed_message["data"]["chat"])
+                iv = b64decode(parsed_message["data"]["iv"])
+                enc_key =  b64decode(parsed_message["data"]["symm_keys"])
+            except Exception as e:
+                raise ValueError(e)
+            
+            try: 
+                chat = decryptMessage(ciphertext, iv, enc_key)
+            except Exception as e:
+                raise ValueError(e)
         
-        try: 
-            chat = decryptMessage(ciphertext, iv, enc_key)
-        except Exception as e:
-            raise ValueError(e)
-        
-        return chat
+            return chat
     
     return parsed_message
