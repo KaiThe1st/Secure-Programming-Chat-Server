@@ -2,12 +2,20 @@ import json
 import uuid
 from eventLogger import eventLogger
 
+def ValidateMessage(recv_counter, cached_counter):
+    
+    if recv_counter <= cached_counter:
+        return False
+    
+    return True
+
 def ProcessInMessage(message, client_id):
     
     status = 1
     log_message = "Message received."
     # return_message = ""      
     sent_from = client_id
+    fr_ent = "c"
     
     parsed_message = message.decode('utf-8')
     parsed_message = json.loads(parsed_message)
@@ -20,10 +28,11 @@ def ProcessInMessage(message, client_id):
     
     
     if type == "signed_data":
+        if sent_from != -1 and ValidateMessage(parsed_message["counter"], server_state["clients"][sent_from]["counter"]) == False:
+            return None, None, None, None, None
         
         # Parser for chat
         if parsed_message["data"]["type"] == "chat":
-            
             # print("recv")
             type += "_chat"
             # encoded_chat = parsed_message["data"]["chat"]
@@ -69,14 +78,17 @@ def ProcessInMessage(message, client_id):
         
         elif parsed_message["data"]["type"] == "server_hello":
             type += "_server_hello"
+            fr_ent = "s"
             
     elif type == "client_list_request":
         type = "client_list_request"
         log_message = "Received online user list request"
         # print(parsed_message["type"])
     elif type == "client_update_request":
+        fr_ent = "s"
         pass
     elif type == "client_update":
+        fr_ent = "s"
         pass
     else:
         print(f"Message has invalid type {parsed_message["type"]}")

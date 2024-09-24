@@ -18,6 +18,11 @@ def eventLogger (event, status, subject, additional_info):
         print(f"[{now}]: CLIENT {subject} CONNECTED")
         return
         
+    if event == "signed_data_server_hello":
+        print(f"[{now}]: SERVER {subject} CONNECTED")
+        return
+        
+        
     if event == "signed_data_chat":
         print(f"[{now}]: RECV a message from {subject}")
         return

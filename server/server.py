@@ -39,10 +39,10 @@ async def handler(websocket):
             
     
     while True:
+        from_id = "-1"
         try:
             global internal_online_users
-            client_id = "-1"
-            d_server = "-1"
+
             message = await websocket.recv()
             # Identify the user who sent the message
             # By comaparing the sending websocket object against the recorded websocket object
@@ -50,11 +50,16 @@ async def handler(websocket):
             for id in internal_online_users:
                 # print(internal_online_users[server_address][id]["socket"])
                 if internal_online_users[id]["socket"] == websocket:
-                    client_id = id
+                    from_id = id
                     # print(id)
                     break
-                
             
+            if from_id == "-1":    
+                distant_connector = websocket.remote_address
+                distant_address = f"{distant_connector[0]}:{distant_connector[1]}"
+                for neigbour in NEIGHBOURS:
+                    if neigbour["address"] == distant_address:
+                        from_id == distant_address
             
             # Process the Message
             # type: a message type as defined in the protocol document in the form f"{type}_{sub_type}"
@@ -62,14 +67,16 @@ async def handler(websocket):
             # sent_from: user_id
             # log_message: recording the event
             
-            type, status, log_message, sent_from, parsed_message = ProcessInMessage(message, client_id)
+            type, status, log_message, sent_from, parsed_message = ProcessInMessage(message, from_id)
             
-            
-            if sent_from == "-1":
-                # await websocket.close(code=4000, reason="Limited one client on a host")
+            if type == None:
                 continue
             
-            eventLogger(type, status, sent_from, log_message)
+            
+            if sent_from != "-1":
+                # await websocket.close(code=4000, reason="Limited one client on a host")
+            
+                eventLogger(type, status, sent_from, log_message)
             
             
             # Store the websocket object if it is not yet recorded
