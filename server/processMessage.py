@@ -24,17 +24,25 @@ def ProcessInMessage(message, client_id):
             
             # print("recv")
             type = "signed_data_chat"
+            # encoded_chat = parsed_message["data"]["chat"]
             encoded_chat = parsed_message["data"]["chat"]
-            print(parsed_message)
-            print(encoded_chat)
+            return_message = {}
+            iv = parsed_message["data"]["iv"]
+            enc_sym_keys = parsed_message["data"]["symm_keys"]
+            return_message["chat"] = encoded_chat
+            return_message["iv"] = iv
+            return_message["enc_keys"] = enc_sym_keys
+            print(return_message)
+            # print(encoded_chat)
             
                 
         # Parser for public_chat
         if parsed_message["data"]["type"] == "public_chat":
             type = "signed_data_public_chat"
             encoded_chat = parsed_message["data"]["chat"]
+            return_message = parsed_message["data"]["chat"]
             # pass
-        
+            
         
         # Parser for server connection
         if parsed_message["data"]["type"] == "hello":
@@ -76,7 +84,7 @@ def ProcessInMessage(message, client_id):
     with open("./state.json", 'w') as server_state_write:
         json.dump(server_state, server_state_write, indent=4)  
     
-    return type, status, log_message, sent_from
+    return return_message, type, status, log_message, sent_from
 
 
 
@@ -98,8 +106,10 @@ def AssembleOutwardMessage (type, message):
 
     if type == "signed_data_chat":
         outward_message["data"] = message
+        # print(f"\n Outward message: {outward_message}")
     
     outward_message_json = json.dumps(outward_message).encode('utf-8')
+    # print(f"\n Outward message: {outward_message_json}")
     return outward_message_json
 
 

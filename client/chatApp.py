@@ -101,8 +101,9 @@ class WebsocketConnection(QtCore.QThread):
                 # Continuously waiting for message from server
                 while True:
                     try:
-                        message = await websocket.recv()  
-                        self.message_received.emit(f"Received: {message}") 
+                        message = await websocket.recv()
+                        msg = ParseInMessage(message)
+                        self.message_received.emit(f"Received: {msg}") 
                     except websockets.ConnectionClosedOK:
                         print('See you next time.')
                         break
