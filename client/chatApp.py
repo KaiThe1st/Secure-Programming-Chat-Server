@@ -36,12 +36,13 @@ class G40chatApp(QMainWindow):
         # Chat display (in the center)
         self.chat_display = QTextEdit(self)
         self.chat_display.setReadOnly(True)
-        
+
         self.chat_display_title = QLabel("Name of User", self) # needs to be done
         self.chat_display_title.setStyleSheet("font-weight: bold; font-size: 16px;")  # Style for the label  
 
         # Message input (bottom)
         self.message_input = QLineEdit(self)
+        self.message_input.returnPressed.connect(self.send_message)
 
         # Upload button (left of the message input)
         self.upload_button = QPushButton("Upload File", self)
