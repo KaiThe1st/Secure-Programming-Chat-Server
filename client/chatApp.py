@@ -31,13 +31,21 @@ class G40chatApp(QMainWindow):
         
         # Title above the side menu (labeled "Chats")
         self.side_menu_title = QLabel("Chats", self)
-        self.side_menu_title.setStyleSheet("font-weight: bold; font-size: 16px;")  # Style for the label     
+        self.side_menu_title.setStyleSheet("font-weight: bold; font-size: 16px;")  # Style for the label
+        
+        # Add buttons for "Public Chat" and "Private Chat"
+        self.public_chat_button = QPushButton("Public Chat", self)
+        self.private_chat_button = QPushButton("New Private Chat", self)
+        
+        # Placeholder for chat type switch functionality
+        # self.public_chat_button.clicked.connect(self.switch_to_public_chat)
+        # self.private_chat_button.clicked.connect(self.switch_to_private_chat)
 
         # Chat display (in the center)
         self.chat_display = QTextEdit(self)
         self.chat_display.setReadOnly(True)
 
-        self.chat_display_title = QLabel("Name of User", self) # needs to be done
+        self.chat_display_title = QLabel("Name of User", self)  # Chat title (can change based on chat context)
         self.chat_display_title.setStyleSheet("font-weight: bold; font-size: 16px;")  # Style for the label  
 
         # Message input (bottom)
@@ -55,14 +63,15 @@ class G40chatApp(QMainWindow):
         # Side menu layout (fixed width)
         side_layout = QVBoxLayout()
         side_layout.addWidget(self.side_menu_title)  # Add the title above the side menu
-        side_layout.addWidget(self.side_menu)
-        side_layout.setStretch(1, 1)  # Make the side menu take as much space as possible
+        side_layout.addWidget(self.public_chat_button)  # Add Public Chat button
+        side_layout.addWidget(self.private_chat_button)  # Add Private Chat button
+        side_layout.addWidget(self.side_menu)  # Add the chat list itself
+        side_layout.setStretch(3, 1)  # Make the side menu take as much space as possible
         main_layout.addLayout(side_layout)
-
 
         # Chat layout (center and bottom area)
         chat_layout = QVBoxLayout()
-        chat_layout.addWidget(self.chat_display_title)  # Add the title above the side menu
+        chat_layout.addWidget(self.chat_display_title)  # Add the title above the chat display
         chat_layout.addWidget(self.chat_display)
         
         # Input layout (message input, upload button, send button)
