@@ -8,7 +8,7 @@ from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtWidgets import QMainWindow, QGridLayout, QVBoxLayout
 import logging
 
-# logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.DEBUG)
 
 ONLINE_USERS = []
 
@@ -68,7 +68,7 @@ class WebsocketConnection(QtCore.QThread):
 
 
     async def websocket_connect(self):
-        ip = "127.0.0.1"
+        ip = "localhost"
         port = 8080
         with open("./server_info.json", 'r') as server_info:
             data = json.load(server_info)
@@ -101,8 +101,9 @@ class WebsocketConnection(QtCore.QThread):
                 # Continuously waiting for message from server
                 while True:
                     try:
-                        message = await websocket.recv()  
-                        self.message_received.emit(f"Received: {message}") 
+                        message = await websocket.recv()
+                        msg = ParseInMessage(message)
+                        self.message_received.emit(f"Received: {msg}") 
                     except websockets.ConnectionClosedOK:
                         print('See you next time.')
                         break
