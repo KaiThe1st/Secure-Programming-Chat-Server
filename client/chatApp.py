@@ -4,8 +4,9 @@ import asyncio
 import websockets
 import json
 import sys
-from PyQt5 import QtWidgets, QtCore
-from PyQt5.QtWidgets import QMainWindow, QGridLayout, QVBoxLayout
+from PyQt5 import QtWidgets
+from PyQt5.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QTextEdit, QLineEdit, QLabel, QPushButton
+from PyQt5 import QtCore
 import logging
 
 # logging.basicConfig(level=logging.DEBUG)
@@ -17,28 +18,66 @@ class G40chatApp(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Group40chatApp")
-        self.setGeometry(0, 0, 1900, 1080)
-
+        self.setGeometry(100, 100, 800, 600)  # Set an initial size, but it'll adjust based on screen size
         
-        self.side_menu = QtWidgets.QTextEdit(self)
-        self.side_menu.setGeometry(0, 0, 380, 1820)
+        # Main widget and layout
+        main_widget = QWidget(self)
+        self.setCentralWidget(main_widget)
+        main_layout = QHBoxLayout(main_widget)
+
+        # Side menu (on the left)
+        self.side_menu = QTextEdit(self)
         self.side_menu.setReadOnly(True)
         
-        
-        self.chat_display = QtWidgets.QTextEdit(self)
-        self.chat_display.setGeometry(380, 0, 1540, 900)
+        # Title above the side menu (labeled "Chats")
+        self.side_menu_title = QLabel("Chats", self)
+        self.side_menu_title.setStyleSheet("font-weight: bold; font-size: 16px;")  # Style for the label     
+
+        # Chat display (in the center)
+        self.chat_display = QTextEdit(self)
         self.chat_display.setReadOnly(True)
         
-        
-        self.message_input = QtWidgets.QLineEdit(self)
-        self.message_input.setGeometry(380, 905, 1420, 80)
+        self.chat_display_title = QLabel("Name of User", self) # needs to be done
+        self.chat_display_title.setStyleSheet("font-weight: bold; font-size: 16px;")  # Style for the label  
 
-        self.send_button = QtWidgets.QPushButton("Send", self)
-        self.send_button.setGeometry(1800, 905, 120, 80)
+        # Message input (bottom)
+        self.message_input = QLineEdit(self)
+
+        # Upload button (left of the message input)
+        self.upload_button = QPushButton("Upload File", self)
+        # self.upload_button.clicked.connect(self.upload_image)
+
+        # Send button (right of the message input)
+        self.send_button = QPushButton("Send", self)
         self.send_button.clicked.connect(self.send_message)
-        
-        
 
+        # Side menu layout (fixed width)
+        side_layout = QVBoxLayout()
+        side_layout.addWidget(self.side_menu_title)  # Add the title above the side menu
+        side_layout.addWidget(self.side_menu)
+        side_layout.setStretch(1, 1)  # Make the side menu take as much space as possible
+        main_layout.addLayout(side_layout)
+
+
+        # Chat layout (center and bottom area)
+        chat_layout = QVBoxLayout()
+        chat_layout.addWidget(self.chat_display_title)  # Add the title above the side menu
+        chat_layout.addWidget(self.chat_display)
+        
+        # Input layout (message input, upload button, send button)
+        input_layout = QHBoxLayout()
+        input_layout.addWidget(self.upload_button)   # Add the upload button here
+        input_layout.addWidget(self.message_input)
+        input_layout.addWidget(self.send_button)
+
+        chat_layout.addLayout(input_layout)
+        main_layout.addLayout(chat_layout)
+
+        # Stretch factors for dynamic resizing
+        main_layout.setStretch(0, 1)  # Side menu takes 1/5 of space
+        main_layout.setStretch(1, 4)  # Chat display and input take 4/5 of space
+
+        # WebSocket thread for handling chat connections
         self.websocket_thread = WebsocketConnection(self)
         self.websocket_thread.start()
 
@@ -129,6 +168,8 @@ class WebsocketConnection(QtCore.QThread):
     async def websocket_send(self, message):
         if self.connected and self.websocket:
             await self.websocket.send(message) 
+
+
 
 def main():
     app = QtWidgets.QApplication(sys.argv)
