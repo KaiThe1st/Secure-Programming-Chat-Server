@@ -64,7 +64,7 @@ def ParseOutMessage (message, type, subtype, receiver, online_users):
             
             receiver.insert(0, SIGNATURE)
             
-            with open("./public_key.pem", 'r') as pub_k:
+            with open("./public_key_hoan.pem", 'r') as pub_k:
                 public_key = pub_k.read()
             cipher_chat, iv, sym_key = encryptMessage(message, receiver, online_users, public_key)
             parsedMessage["data"]["chat"] = b64encode(cipher_chat).decode('utf8')
@@ -123,4 +123,14 @@ def ParseInMessage (message):
         
             return chat
     
+    if parsed_message["type"] == "client_list":
+        with open("client_state.json","r") as client_state_json:
+            client_state = json.load(client_state_json)
+        
+        
+        client_state["online_users"] = parsed_message["servers"]
+        
+        with open("client_state.json","w") as client_state_json:
+            json.dump(client_state, client_state_json, indent=4)
+
     return parsed_message
