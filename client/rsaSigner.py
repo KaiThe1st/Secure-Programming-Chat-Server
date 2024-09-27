@@ -17,15 +17,15 @@ def rsaSign(message):
     return signature
 
 
-def rsaVerify(message, signature: bytes, public_key: bytes):
+def rsaVerify(message, signature, public_key):
     hash = SHA256.new(message)
     verifier = pss.new(public_key, salt_bytes=32)
     try:
         verifier.verify(hash, signature)
+        return True
     except (ValueError):
         raise ValueError("Invalid signature")
 
-    return True
 
 if __name__ == "__main__":
     pass

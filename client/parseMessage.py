@@ -42,8 +42,8 @@ def ParseOutMessage (message, type, subtype, receiver, online_users):
             
             # what does this section do?
             key_bytes = b64decode(PUBLIC_KEY)
-            SIGNATURE = hashlib.sha256(key_bytes).digest()
-            SIGNATURE = b64encode(SIGNATURE).decode('utf-8')
+            FINGERPRINT = hashlib.sha256(key_bytes).digest()
+            FINGERPRINT = b64encode(FINGERPRINT).decode('utf-8')
 
             
             
@@ -62,10 +62,10 @@ def ParseOutMessage (message, type, subtype, receiver, online_users):
             
             parsedMessage["data"]["chat"]["participants"] = []
             
-            receiver.insert(0, SIGNATURE)
+            receiver.insert(0, FINGERPRINT)
             
-            with open("./public_key_hoan.pem", 'r') as pub_k:
-                public_key = pub_k.read()
+            # with open("./public_key_hoan.pem", 'r') as pub_k:
+            #     public_key = pub_k.read()
             cipher_chat, iv, sym_key = encryptMessage(message, receiver, online_users, public_key)
             parsedMessage["data"]["chat"] = b64encode(cipher_chat).decode('utf8')
             parsedMessage["data"]["iv"] = b64encode(iv).decode('utf8')
@@ -75,15 +75,16 @@ def ParseOutMessage (message, type, subtype, receiver, online_users):
             
             
         if subtype == "public_chat":
-            parsedMessage["data"]["sender"] = SIGNATURE
+            parsedMessage["data"]["sender"] = FINGERPRINT
             parsedMessage["data"]["message"] = message
             
-        
         # Random stuff for now
         parsedMessage["counter"] = state_data["counter"]
         state_data["counter"] += 1
         # Need base64
-        parsedMessage["signature"] = f"{SIGNATURE}{parsedMessage['counter']}"
+        
+        signature = rsaSign(message)
+        parsedMessage["signature"] = f"{signature}{parsedMessage['counter']}"
         
         with open('./client_state.json', 'w') as client_state_dump:
             json.dump(state_data, client_state_dump, indent=4)
@@ -120,8 +121,13 @@ def ParseInMessage (message):
                 chat = decryptMessage(ciphertext, iv, enc_key)
             except Exception as e:
                 raise ValueError(e)
-        
             return chat
+            # try:
+            #     if (rsaVerify(chat, signature, public_key)):
+            #         verified_chat = chat
+            # except Exception as e:
+            #     raise ValueError(e)
+            # return verified_chat
     
     if parsed_message["type"] == "client_list":
         with open("client_state.json","r") as client_state_json:

@@ -56,6 +56,9 @@ def encryptMessage(plaintext, participants, online_users, pub_key):
     chat = {}
     chat["message"] = plaintext
     chat["participants"] = participants
+    
+
+        
 
     
     message = json.dumps(chat["message"]).encode()
@@ -66,6 +69,23 @@ def encryptMessage(plaintext, participants, online_users, pub_key):
     
     sym_key = get_random_bytes(KEY_LENGTH)
     
+    # cipher_chat = []
+    # ENC_SYM_KEY = []
+    
+    # for public_key in participants:
+    #     if (public_key.find(PEM_FOOTER_PUBK) == -1 or public_key.find(PEM_HEADER_PUBK) == -1):
+    #         public_key = public_key.replace(PEM_FOOTER_PUBK,"").replace(PEM_HEADER_PUBK,"").strip()
+    #         public_key = PEM_HEADER_PUBK + '\n' + public_key + '\n' + PEM_FOOTER_PUBK
+            
+    #     rsa_public = RSA.import_key(public_key)
+    #     cipher_rsa = PKCS1_OAEP.new(rsa_public, SHA256)
+    #     enc_key = cipher_rsa.encrypt(sym_key)
+        
+    #     ENC_SYM_KEY.append(enc_key)
+        
+    #     cipher_aes = AES.new(sym_key, AES.MODE_GCM, iv)
+    #     indv_cipher, authTag = cipher_aes.encrypt_and_digest(message)
+    #     cipher_chat.append(indv_cipher)
     
     if (pub_key.find(PEM_FOOTER_PUBK) == -1 or pub_key.find(PEM_HEADER_PUBK) == -1):
         pub_key = pub_key.replace(PEM_FOOTER_PUBK,"").replace(PEM_HEADER_PUBK,"").strip()
@@ -78,13 +98,6 @@ def encryptMessage(plaintext, participants, online_users, pub_key):
     cipher_aes = AES.new(sym_key, AES.MODE_GCM, iv)
     cipher_chat, authTag = cipher_aes.encrypt_and_digest(message)
     
-    destination_servers = []
-    symm_keys = []
-         
-    
-    for participant in participants:
-        destination_servers = []
-        symm_keys = []
     
     
     return(cipher_chat, iv, ENC_SYM_KEY)
@@ -129,3 +142,12 @@ if __name__ == "__main__":
 
     deciphered = decryptMessage(cipher_chat, nonce, enc_key) 
     print(deciphered)
+    
+    with open("client_state.json","r") as client_state_json:
+        client_state = json.load(client_state_json)
+        all_users = client_state["online_users"]
+    for user in all_users:
+        server = user["address"]
+        print(f"Address {server}:")
+        for client in user["clients"]:
+            print(f"    {client}")

@@ -7,7 +7,7 @@ def generate_key_pair():
     key = RSA.generate(2048)
 
     # Export the private key
-    private_key = key.export_key(passphrase="G40", pkcs=8, 
+    private_key = key.export_key(passphrase=PASSPHRASE, pkcs=8, 
                                  protection="PBKDF2WithHMAC-SHA512AndAES256-CBC",
                                  prot_params={'iteration_count':21000})
 

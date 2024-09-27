@@ -117,7 +117,18 @@ class WebsocketConnection(QtCore.QThread):
     # A handler when the UI receive a send request
     # Assign the send functionality to another thread
     def send_message(self, message):
-        parsedMessage = ParseOutMessage(message, "signed_data", "chat", [], ONLINE_USERS)
+        with open("client_state.json","r") as client_state_json:
+            client_state = json.load(client_state_json)
+            assert (client_state["type"] == "client_list")
+            all_users = client_state["online_users"]
+            
+        # for user in all_users:
+        #     # if (user["address"] == address):
+        #         active_users = user["clients"]
+        #         break
+        for user in all_users:
+            active_users = user["clients"]
+        parsedMessage = ParseOutMessage(message, "signed_data", "chat", active_users, ONLINE_USERS)
         asyncio.run_coroutine_threadsafe(self.websocket_send(parsedMessage), self.loop)
     
     # 
