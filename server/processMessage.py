@@ -91,7 +91,7 @@ def ProcessInMessage(message, client_id):
         fr_ent = "s"
         pass
     else:
-        print(f"Message has invalid type {parsed_message["type"]}")
+        print(f"Message has invalid type {parsed_message['type']}")
     
     
     with open("./state.json", 'w') as server_state_write:

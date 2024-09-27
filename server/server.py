@@ -199,7 +199,6 @@ async def handler(websocket):
                     # Send message to neighbour servers when the message is from a client
                     if socket == websocket:
                         isFromServer == False
-                        
                         # print(parsed_message["data"]["destination_servers"])
                         prev = ""
                         for dest in ONLINE_NEIGHBOURS:
@@ -213,7 +212,7 @@ async def handler(websocket):
                                 pass
                             prev = dest
                         
-                        break
+                        break     
                 
                 # Send the message to all online clients connected to this master server
                 for client_id in internal_online_users:

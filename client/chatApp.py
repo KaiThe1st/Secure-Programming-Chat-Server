@@ -4,11 +4,12 @@ import asyncio
 import websockets
 import json
 import sys
-from PyQt5 import QtWidgets, QtCore
-from PyQt5.QtWidgets import QMainWindow, QGridLayout, QVBoxLayout
+from PyQt5 import QtWidgets
+from PyQt5.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QTextEdit, QLineEdit, QLabel, QPushButton
+from PyQt5 import QtCore
 import logging
 
-logging.basicConfig(level=logging.DEBUG)
+# logging.basicConfig(level=logging.DEBUG)
 
 ONLINE_USERS = []
 
@@ -17,28 +18,76 @@ class G40chatApp(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Group40chatApp")
-        self.setGeometry(0, 0, 1900, 1080)
-
+        self.setGeometry(100, 100, 800, 600)  # Set an initial size, but it'll adjust based on screen size
         
-        self.side_menu = QtWidgets.QTextEdit(self)
-        self.side_menu.setGeometry(0, 0, 380, 1820)
+        # Main widget and layout
+        main_widget = QWidget(self)
+        self.setCentralWidget(main_widget)
+        main_layout = QHBoxLayout(main_widget)
+
+        # Side menu (on the left)
+        self.side_menu = QTextEdit(self)
         self.side_menu.setReadOnly(True)
         
+        # Title above the side menu (labeled "Chats")
+        self.side_menu_title = QLabel("Chats", self)
+        self.side_menu_title.setStyleSheet("font-weight: bold; font-size: 16px;")  # Style for the label
         
-        self.chat_display = QtWidgets.QTextEdit(self)
-        self.chat_display.setGeometry(380, 0, 1540, 900)
+        # Add buttons for "Public Chat" and "Private Chat"
+        self.public_chat_button = QPushButton("Public Chat", self)
+        self.private_chat_button = QPushButton("New Private Chat", self)
+        
+        # Placeholder for chat type switch functionality
+        # self.public_chat_button.clicked.connect(self.switch_to_public_chat)
+        # self.private_chat_button.clicked.connect(self.switch_to_private_chat)
+
+        # Chat display (in the center)
+        self.chat_display = QTextEdit(self)
         self.chat_display.setReadOnly(True)
-        
-        
-        self.message_input = QtWidgets.QLineEdit(self)
-        self.message_input.setGeometry(380, 905, 1420, 80)
 
-        self.send_button = QtWidgets.QPushButton("Send", self)
-        self.send_button.setGeometry(1800, 905, 120, 80)
+        self.chat_display_title = QLabel("Name of User", self)  # Chat title (can change based on chat context)
+        self.chat_display_title.setStyleSheet("font-weight: bold; font-size: 16px;")  # Style for the label  
+
+        # Message input (bottom)
+        self.message_input = QLineEdit(self)
+        self.message_input.returnPressed.connect(self.send_message)
+
+        # Upload button (left of the message input)
+        self.upload_button = QPushButton("Upload File", self)
+        # self.upload_button.clicked.connect(self.upload_image)
+
+        # Send button (right of the message input)
+        self.send_button = QPushButton("Send", self)
         self.send_button.clicked.connect(self.send_message)
-        
-        
 
+        # Side menu layout (fixed width)
+        side_layout = QVBoxLayout()
+        side_layout.addWidget(self.side_menu_title)  # Add the title above the side menu
+        side_layout.addWidget(self.public_chat_button)  # Add Public Chat button
+        side_layout.addWidget(self.private_chat_button)  # Add Private Chat button
+        side_layout.addWidget(self.side_menu)  # Add the chat list itself
+        side_layout.setStretch(3, 1)  # Make the side menu take as much space as possible
+        main_layout.addLayout(side_layout)
+
+        # Chat layout (center and bottom area)
+        chat_layout = QVBoxLayout()
+        chat_layout.addWidget(self.chat_display_title)  # Add the title above the chat display
+        chat_layout.addWidget(self.chat_display)
+        
+        # Input layout (message input, upload button, send button)
+        input_layout = QHBoxLayout()
+        input_layout.addWidget(self.upload_button)   # Add the upload button here
+        input_layout.addWidget(self.message_input)
+        input_layout.addWidget(self.send_button)
+
+        chat_layout.addLayout(input_layout)
+        main_layout.addLayout(chat_layout)
+
+        # Stretch factors for dynamic resizing
+        main_layout.setStretch(0, 1)  # Side menu takes 1/5 of space
+        main_layout.setStretch(1, 4)  # Chat display and input take 4/5 of space
+
+        # WebSocket thread for handling chat connections
         self.websocket_thread = WebsocketConnection(self)
         self.websocket_thread.start()
 
@@ -68,7 +117,7 @@ class WebsocketConnection(QtCore.QThread):
 
 
     async def websocket_connect(self):
-        ip = "localhost"
+        ip = "127.0.0.1"
         port = 8080
         with open("./server_info.json", 'r') as server_info:
             data = json.load(server_info)
@@ -97,12 +146,11 @@ class WebsocketConnection(QtCore.QThread):
                 response = ParseInMessage(response)
                 print(response)
                 
-                
                 # Continuously waiting for message from server
                 while True:
                     try:
                         message = await websocket.recv()
-                        msg = ParseInMessage(message)
+                        msg = ParseInMessage(message)  
                         self.message_received.emit(f"Received: {msg}") 
                     except websockets.ConnectionClosedOK:
                         print('See you next time.')
@@ -117,7 +165,7 @@ class WebsocketConnection(QtCore.QThread):
     # A handler when the UI receive a send request
     # Assign the send functionality to another thread
     def send_message(self, message):
-        parsedMessage = ParseOutMessage(message, "signed_data", "chat", [], ONLINE_USERS)
+        parsedMessage = ParseOutMessage(message, "signed_data", "public_chat", [], ONLINE_USERS)
         asyncio.run_coroutine_threadsafe(self.websocket_send(parsedMessage), self.loop)
     
     # 
@@ -131,14 +179,10 @@ class WebsocketConnection(QtCore.QThread):
         if self.connected and self.websocket:
             await self.websocket.send(message) 
 
-def main():
-    app = QtWidgets.QApplication(sys.argv)
-    window = G40chatApp()
-    window.showMaximized()
+app = QtWidgets.QApplication(sys.argv)
+window = G40chatApp()
+window.showMaximized()
 
-    window.websocket_thread.message_received.connect(window.display_message)
+window.websocket_thread.message_received.connect(window.display_message)
 
-    sys.exit(app.exec_())
-
-if __name__ == "__main__":
-    main()
+sys.exit(app.exec_())

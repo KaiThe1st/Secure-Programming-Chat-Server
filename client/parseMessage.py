@@ -120,8 +120,11 @@ def ParseInMessage (message):
                 chat = decryptMessage(ciphertext, iv, enc_key)
             except Exception as e:
                 raise ValueError(e)
-        
-            return chat
+            
+        if parsed_message["data"]["type"] == "public_chat":
+            chat = parsed_message["data"]["message"]
+
+        return chat
     
     if parsed_message["type"] == "client_list":
         with open("client_state.json","r") as client_state_json:
