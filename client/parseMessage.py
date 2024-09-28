@@ -225,7 +225,10 @@ def ParseOutMessage (message, msg_type, subtype, receiver, online_users):
             with open("./client_state.json", 'r') as file:
                 client_state = json.load(file)
                 recipients = client_state["online_users"][0]["clients"]
-                recipients.remove(PUBLIC_KEY)
+                try:
+                    recipients.remove(PUBLIC_KEY)
+                except:
+                    pass
                 recipients.insert(0, PUBLIC_KEY)
             cipher_chat, iv, sym_key = encryptMessage(message,recipients,recipients)
             parsedMessage["data"]["chat"] = b64encode(cipher_chat).decode('utf8')
@@ -277,6 +280,7 @@ def ParseInMessage (message):
     msg_type = parsed_message['type']
     
     if parsed_message["type"] == "signed_data":
+        print(parsed_message)
         msg_type += f"_{parsed_message['data']['type']}"
         if parsed_message["data"]["type"] == "chat":
             try:
@@ -294,14 +298,17 @@ def ParseInMessage (message):
                     message_info["message"] = chat["message"]
                     for p in chat["participants"]:
                         if p not in state_data["NS"]:
-                            state_data["NS"][p] = Faker().name()
+                            state_data["NS"][p] ={}
+                            state_data["NS"][p]["name"] = Faker().name()
+                            state_data["NS"][p]["color"] = Faker().hex_color()
                             
                     with open('./client_state.json', 'w') as fout:
                         json.dump(state_data, fout, indent=4)
                         
                     for fp in state_data["NS"]:
                         if fp == chat["participants"][0]:
-                            message_info["sender"] = state_data["NS"][fp]            
+                            message_info["sender"] = state_data["NS"][fp]["name"]            
+                            message_info["color"] = state_data["NS"][fp]["color"]            
             except Exception as e:
                 raise ValueError(e)
             return message_info, msg_type

@@ -36,11 +36,8 @@ def ProcessInMessage(message, client_id):
         
         if parsed_message["data"]["type"] != "hello":
             sender_pub_k = server_state["clients"][client_id]["public_key"]
-            print(f"sender_pub_k: {sender_pub_k}")
             data_json_string = json.dumps(parsed_message["data"]) + str(parsed_message["counter"])
-            print(f"data_json_string: {data_json_string}")
             signature = b64decode(parsed_message["signature"].encode())
-            print(f"Sign: {signature}")
             is_verified = rsaVerify(data_json_string, signature, sender_pub_k)
 
             print(f"Origin: {is_verified}")
@@ -137,24 +134,25 @@ def AssembleOutwardMessage (msg_type, subtype, message):
             
         
         if subtype == "chat" or subtype == "public_chat":
-            # try:
-            #     in_counter = message["counter"]
-            #     in_signature = b64decode(message["signature"])
-            #     out_counter = server_state["counter"]
-            #     print(in_counter)
-            #     out_signature = f"{in_signature[:-len(str(in_counter))]}{str(out_counter)}"
+            try:
+                in_counter = message["counter"]
+                in_signature = b64decode(message["signature"])
+                out_counter = server_state["counter"]
+                print(in_counter)
+                out_signature = f"{in_signature[:-len(str(in_counter))]}{str(out_counter)}"
                 
-            #     outward_message["counter"] = out_counter
-            #     # outward_message["signature"] = b64encode(out_signature)
-            #     outward_message["signature"] = out_signature
-            #     print(message)
-            #     outward_message["data"] = message["data"]
-            # except Exception as e:
-            #     print(f"Incorrect message format: {e}")
+                outward_message["counter"] = out_counter
+                # outward_message["signature"] = b64encode(out_signature)
+                outward_message["signature"] = out_signature
+                print(message)
+                outward_message["data"] = message["data"]
+            except Exception as e:
+                print(f"Incorrect message format: {e}")
             outward_message["data"] = message["data"]
-            outward_message["counter"] = message["counter"]
-            # outward_message["signature"] = message["signature"]
-            # print(outward_message["signature"])
+            outward_message["counter"] = out_counter
+            signed_signature = rsaSign(out_signature)
+            
+            outward_message["signature"] = b64encode(signed_signature).decode()
         
         server_state["counter"] += 1
             

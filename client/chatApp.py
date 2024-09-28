@@ -230,6 +230,9 @@ class G40chatApp(QMainWindow):
 
         # Chat display (in the center)
         self.chat_display = QTextEdit(self)
+        font_display_chat = QFont()
+        font_display_chat.setPointSize(16)
+        self.chat_display.setFont(font_display_chat)
         self.chat_display.setReadOnly(True)
         
         self.chat_display_title = QLabel("Public Chat", self)
@@ -238,9 +241,9 @@ class G40chatApp(QMainWindow):
         # Message input (bottom)
         self.message_input = QLineEdit(self)
         self.message_input.setFixedHeight(60)
-        font = QFont()
-        font.setPointSize(16)
-        self.message_input.setFont(font)
+        font_input = QFont()
+        font_input.setPointSize(16)
+        self.message_input.setFont(font_input)
         self.message_input.returnPressed.connect(self.send_message)
         
         
@@ -249,7 +252,7 @@ class G40chatApp(QMainWindow):
         # self.upload_button.setFont(font)
         self.send_button = QPushButton("Send", self)
         self.send_button.setFixedHeight(60)
-        self.send_button.setFont(font)
+        self.send_button.setFont(font_input)
         self.send_button.clicked.connect(self.send_message)
 
         # Side layout
@@ -369,7 +372,7 @@ class WebsocketConnection(QtCore.QThread):
                         if (msg_type == "signed_data_chat" or \
                             msg_type == "signed_data_public_chat") \
                             and msg != False:
-                            self.message_received.emit(f"{msg["sender"]}: {msg["message"]}") 
+                            self.message_received.emit(f"<span style='color:{msg["color"]}'>{msg["sender"]}: {msg["message"]}</span>") 
                     except websockets.ConnectionClosedOK:
                         print('See you next time.')
                         break
