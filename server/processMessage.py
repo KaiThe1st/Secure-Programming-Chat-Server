@@ -1,6 +1,9 @@
 import json
 import uuid
 from eventLogger import eventLogger
+from base64 import b64encode, b64decode
+from rsaSigner import rsaSign, rsaVerify
+
 
 def ValidateMessage(recv_counter, cached_counter):
     
@@ -28,8 +31,23 @@ def ProcessInMessage(message, client_id):
     
     
     if type == "signed_data":
+        if sent_from == "-1" and parsed_message["data"]["type"] != "hello":
+            return None, None, None,None, None
+        
+        if parsed_message["data"]["type"] != "hello":
+            sender_pub_k = server_state["clients"][client_id]["public_key"]
+            print(f"sender_pub_k: {sender_pub_k}")
+            data_json_string = json.dumps(parsed_message["data"]) + str(parsed_message["counter"])
+            print(f"data_json_string: {data_json_string}")
+            signature = b64decode(parsed_message["signature"].encode())
+            print(f"Sign: {signature}")
+            is_verified = rsaVerify(data_json_string, signature, sender_pub_k)
+
+            print(f"Origin: {is_verified}")
+        
         if sent_from != "-1" and ValidateMessage(parsed_message["counter"], server_state["clients"][sent_from]["counter"]) == False:
             return None, None, None, None, None
+        
         
         # Parser for chat
         if parsed_message["data"]["type"] == "chat":
@@ -43,7 +61,7 @@ def ProcessInMessage(message, client_id):
         # Parser for public_chat
         elif parsed_message["data"]["type"] == "public_chat":
             type += "_public_chat"
-            encoded_chat = parsed_message["data"]["chat"]
+            encoded_chat = parsed_message["data"]["message"]
             # pass
         
         
@@ -102,24 +120,56 @@ def ProcessInMessage(message, client_id):
 
 
 
-def AssembleOutwardMessage (type, subtype, message):
+def AssembleOutwardMessage (msg_type, subtype, message):
     outward_message = {}
-    outward_message["type"] = type
-      
-    if type == "signed_data":
+    outward_message["type"] = msg_type
+    
+    with open("./state.json", 'r') as server_state_read:
+        server_state = json.load(server_state_read)
+    
+    if msg_type == "signed_data":
+        outward_message["data"] = {}
         outward_message["data"]["type"] = subtype
 
         if subtype == "server_hello":
-            outward_message["sender"] = message
+            outward_message["data"]["sender"] = message
+            outward_message["counter"] = server_state["counter"]
             
-    elif type == "client_list":
+        
+        if subtype == "chat" or subtype == "public_chat":
+            # try:
+            #     in_counter = message["counter"]
+            #     in_signature = b64decode(message["signature"])
+            #     out_counter = server_state["counter"]
+            #     print(in_counter)
+            #     out_signature = f"{in_signature[:-len(str(in_counter))]}{str(out_counter)}"
+                
+            #     outward_message["counter"] = out_counter
+            #     # outward_message["signature"] = b64encode(out_signature)
+            #     outward_message["signature"] = out_signature
+            #     print(message)
+            #     outward_message["data"] = message["data"]
+            # except Exception as e:
+            #     print(f"Incorrect message format: {e}")
+            outward_message["data"] = message["data"]
+            outward_message["counter"] = message["counter"]
+            # outward_message["signature"] = message["signature"]
+            # print(outward_message["signature"])
+        
+        server_state["counter"] += 1
+            
+            
+    elif msg_type == "client_list":
         outward_message["servers"] = message
         
-    elif type == "client_update_request":
+    elif msg_type == "client_update_request":
         pass
     
-    elif type == "client_update":
+    elif msg_type == "client_update":
         outward_message["clients"] = message
+    
+    with open("./state.json", 'w') as server_state_write:
+        json.dump(server_state, server_state_write, indent=4) 
     
     outward_message_json = json.dumps(outward_message).encode('utf-8')
     return outward_message_json

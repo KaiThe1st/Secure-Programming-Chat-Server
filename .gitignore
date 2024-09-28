@@ -8,4 +8,9 @@
 /client/localtestfile.py
 /client/template.json
 
+/server/testserver.py
+/server/upload.html
+
+/server/upload/*
+
 /py_cache/
