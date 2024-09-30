@@ -12,5 +12,6 @@
 /server/upload.html
 
 /server/upload/*
+/client/download/*
 
 /py_cache/

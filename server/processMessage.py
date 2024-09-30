@@ -12,13 +12,11 @@ def ValidateMessage(recv_counter, cached_counter):
     
     return True
 
-def ProcessInMessage(message, client_id):
+def ProcessInMessage(message, client_id, from_server: bool):
     
     status = 1
     log_message = "Message received."
-    # return_message = ""      
     sent_from = client_id
-    fr_ent = "c"
     
     parsed_message = message.decode('utf-8')
     parsed_message = json.loads(parsed_message)
@@ -31,19 +29,12 @@ def ProcessInMessage(message, client_id):
     
     
     if type == "signed_data":
-        if sent_from == "-1" and parsed_message["data"]["type"] != "hello":
-            return None, None, None,None, None
+        if sent_from == "-1" and not from_server and parsed_message["data"]["type"] != "hello":
+            return None, 0, None,None, None
         
-        if parsed_message["data"]["type"] != "hello":
-            sender_pub_k = server_state["clients"][client_id]["public_key"]
-            data_json_string = json.dumps(parsed_message["data"]) + str(parsed_message["counter"])
-            signature = b64decode(parsed_message["signature"].encode())
-            is_verified = rsaVerify(data_json_string, signature, sender_pub_k)
-
-            print(f"Origin: {is_verified}")
-        
-        if sent_from != "-1" and ValidateMessage(parsed_message["counter"], server_state["clients"][sent_from]["counter"]) == False:
-            return None, None, None, None, None
+        if sent_from != "-1" and not from_server \
+            and ValidateMessage(parsed_message["counter"], server_state["clients"][sent_from]["counter"]) == False:
+            return None, 0, None, None, None
         
         
         # Parser for chat
@@ -76,8 +67,6 @@ def ProcessInMessage(message, client_id):
                     sent_from = client_id
                     # break
                     
-            
-            
             if not client_found_in_server:
                 while True:
                     new_client_id = str(uuid.uuid4())
@@ -87,23 +76,21 @@ def ProcessInMessage(message, client_id):
                         server_state["clients"][new_client_id]["public_key"] = data["public_key"]
                         sent_from = new_client_id
                         break
-
             status = 1 
             log_message = f"Connection Establised"     
         
-        elif parsed_message["data"]["type"] == "server_hello":
+        elif parsed_message["data"]["type"] == "server_hello" and from_server:
             type += "_server_hello"
-            fr_ent = "s"
+            #   Need signature verification
             
-    elif type == "client_list_request":
-        type = "client_list_request"
+    elif type == "client_list_request" and sent_from != "-1":
         log_message = "Received online user list request"
         # print(parsed_message["type"])
-    elif type == "client_update_request":
-        fr_ent = "s"
+    elif type == "client_update_request" and from_server:
+        log_message = "Received online user list update request"
         pass
-    elif type == "client_update":
-        fr_ent = "s"
+    elif type == "client_update" and from_server:
+        log_message = "Received online user list update"
         pass
     else:
         print(f"Message has invalid type {parsed_message["type"]}")
@@ -131,30 +118,11 @@ def AssembleOutwardMessage (msg_type, subtype, message):
         if subtype == "server_hello":
             outward_message["data"]["sender"] = message
             outward_message["counter"] = server_state["counter"]
+            #   Need signing
             
         
         if subtype == "chat" or subtype == "public_chat":
-            try:
-                in_counter = message["counter"]
-                in_signature = b64decode(message["signature"])
-                out_counter = server_state["counter"]
-                print(in_counter)
-                out_signature = f"{in_signature[:-len(str(in_counter))]}{str(out_counter)}"
-                
-                outward_message["counter"] = out_counter
-                # outward_message["signature"] = b64encode(out_signature)
-                outward_message["signature"] = out_signature
-                print(message)
-                outward_message["data"] = message["data"]
-            except Exception as e:
-                print(f"Incorrect message format: {e}")
-            outward_message["data"] = message["data"]
-            outward_message["counter"] = out_counter
-            signed_signature = rsaSign(out_signature)
-            
-            outward_message["signature"] = b64encode(signed_signature).decode()
-        
-        server_state["counter"] += 1
+            pass
             
             
     elif msg_type == "client_list":
