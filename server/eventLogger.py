@@ -27,6 +27,10 @@ def eventLogger (event, status, subject, additional_info):
         print(f"[{now}]: RECV a message from {subject}")
         return
     
+    if event == "signed_data_public_chat":
+        print(f"[{now}]: RECV a public message from {subject}")
+        return
+    
     if event == "client_list_request":
         print(f"[{now}]: {subject} requested online users")
         return
