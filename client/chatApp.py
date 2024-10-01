@@ -1,16 +1,127 @@
 from parseMessage import ParseOutMessage
 from parseMessage import ParseInMessage
+from rsaKeyGenerator import generate_key_pair
 import asyncio
 import websockets
+import requests
 import json
 import sys
+import os
+import hashlib
 from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QTextEdit, QLineEdit, QLabel, QPushButton, QListWidget
+from PyQt5.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QTextEdit, QLineEdit, QLabel, QPushButton, QListWidget, QDialog, QFileDialog
 from PyQt5 import QtCore
+from PyQt5.QtGui import QFont
 import logging
 
 # logging.basicConfig(level=logging.DEBUG)
 ONLINE_USERS = []
+
+with open("./server_info.json", 'r') as server_info:
+        data = json.load(server_info)
+        ip = data["master_server_ip"]
+        port = data["master_server_port"]
+
+SERVER_ADDRESS = f'{ip}:{port}'
+
+
+class UploadDialog(QDialog):
+    global SERVER_ADDRESS
+    def __init__(self):
+        super(UploadDialog, self).__init__()
+
+        self.setWindowTitle('File Upload')
+        self.setGeometry(150, 150, 400, 300)
+        layout = QVBoxLayout()
+        self.file_label = QLabel('Choose a file to upload first', self)
+        self.status_label = QLabel('', self)
+        self.upload_btn = QPushButton('Browser', self)
+        self.upload_btn.clicked.connect(self.click_to_upload)
+        layout.addWidget(self.file_label)
+        layout.addWidget(self.status_label)
+        layout.addWidget(self.upload_btn)
+
+        self.setLayout(layout)
+    def click_to_upload(self):
+        file_path, _ = QFileDialog.getOpenFileName(self, "Select a File", "", 
+                                                   "All Files (*);;Text Files (*.txt);;Images (*.png *.jpg *.jpeg)", 
+                                                   options=QFileDialog.Options())
+        if file_path:
+            self.file_label.setText(f'Selected File: {file_path}')
+            self.upload_file(file_path)
+
+    def upload_file(self, file_path):
+        api_url = f"http://{SERVER_ADDRESS}/api/upload"      
+        files = {'file': open(file_path, 'rb')}
+        try:
+            response = requests.post(api_url, files=files)
+            if response.status_code == 200:
+                response_json = json.loads(response.text)
+                file_url = response_json["body"]["file_url"]
+                with open("./client_state.json", "r") as fin:
+                    client_state = json.load(fin)
+                if file_url not in client_state["file_urls"]:
+                    client_state["file_urls"].append(file_url)
+                with open("./client_state.json", "w") as fout:
+                    json.dump(client_state, fout, indent=4)
+                self.status_label.setText("File uploaded successfully!")
+            else:
+                self.status_label.setText(f"Failed to upload file: {response.status_code}")
+
+        except Exception as e:
+            self.status_label.setText(f"Error: {e}")
+
+        finally:
+            files['file'].close()
+
+
+class DownloadDialog(QDialog):
+    global SERVER_ADDRESS
+    def __init__(self):
+        super(DownloadDialog, self).__init__()
+
+        self.setWindowTitle('File Donwload')
+        self.setGeometry(150, 150, 550, 600)
+        
+        layout = QVBoxLayout(self)
+        self.filelist = QListWidget(self)
+        with open("./client_state.json", "r") as fin:
+            files = (json.load(fin))["file_urls"]
+            
+        for file in files:
+            self.filelist.addItem(file)
+        self.filelist.itemClicked.connect(self.choose_file)    
+        
+        self.stored_loc_label = QLabel('Click Download first.', self)
+        
+        self.download_button = QPushButton("Download", self)
+        self.download_button.clicked.connect(self.download_file)
+        
+        layout.addWidget(self.filelist)
+        layout.addWidget(self.stored_loc_label)
+        layout.addWidget(self.download_button)
+        layout.setStretch(0, 1)
+        
+        self.expectedfile = ""
+
+    def choose_file(self, item):
+        file_url = item.text()
+        self.expectedfile = file_url
+        print(file_url)
+    
+    def download_file(self):
+        response = requests.get(self.expectedfile, stream=True)
+        response.raise_for_status()
+        filename = self.expectedfile.replace("/", "\\").split("\\")[-1]
+        if response.status_code == 200:
+            with open(f"./download/{filename}", 'wb') as fout:
+                for chunk in response.iter_content(chunk_size=8192):
+                    fout.write(chunk)
+            self.stored_loc_label.setText(f"Downloaded successfully. The file is at ./download/{filename}")
+        else:
+            self.stored_loc_label.setText(f"Unsuccessful download.")
+
+
 class PrivateChatDialog(QtWidgets.QDialog):
     def __init__(self, online_users, parent=None):
         super().__init__(parent)
@@ -32,13 +143,13 @@ class PrivateChatDialog(QtWidgets.QDialog):
         print()
 
         # Check if online_users is structured as expected
-        for entry in ONLINE_USERS:
-            clients = entry['clients']
+        # for entry in ONLINE_USERS:
+        #     clients = entry['clients']
 
-        print(clients)
-        # Add each client to the user_list
-        for user in clients:
-            self.user_list.addItem(user)
+        # print(clients)
+        # # Add each client to the user_list
+        # for user in clients:
+        #     self.user_list.addItem(user)
 
         self.user_list.setSelectionMode(QtWidgets.QAbstractItemView.MultiSelection)  # Allow multiple selections
         layout.addWidget(self.user_list)
@@ -76,25 +187,54 @@ class G40chatApp(QMainWindow):
         
         # Add "Public Chat" at the start
         self.side_menu.addItem("Public Chat")
+        
+        with open("./client_state.json", "r") as client_state:
+            state_data = json.load(client_state)
+        
+        for signature in state_data["NS"]:
+            self.side_menu.addItem(state_data["NS"][signature]["name"])
+            
         self.side_menu.itemClicked.connect(self.change_chat)
+        
 
         # Button to initiate new private chat
         self.private_chat_button = QPushButton("New Private Chat", self)
         self.private_chat_button.clicked.connect(self.open_private_chat_dialog)
+        
+        self.upload_button = QPushButton("Upload File", self)
+        self.upload_button.clicked.connect(self.upload_modal_open)
+        
+        self.download_button = QPushButton("Download File", self)
+        self.download_button.clicked.connect(self.download_modal_open)
+        # self.upload_button.setFont(font)
 
         # Chat display (in the center)
         self.chat_display = QTextEdit(self)
+        font_display_chat = QFont()
+        font_display_chat.setPointSize(16)
+        self.chat_display.setFont(font_display_chat)
         self.chat_display.setReadOnly(True)
+        if "public_chat" in state_data["chat_history"]:
+            self.chat_display.append(state_data["chat_history"]["public_chat"])
         
         self.chat_display_title = QLabel("Public Chat", self)
         self.chat_display_title.setStyleSheet("font-weight: bold; font-size: 16px;")
 
         # Message input (bottom)
         self.message_input = QLineEdit(self)
+        self.message_input.setFixedHeight(60)
+        font_input = QFont()
+        font_input.setPointSize(14)
+        self.message_input.setFont(font_input)
         self.message_input.returnPressed.connect(self.send_message)
         
-        self.upload_button = QPushButton("Upload File", self)
+        
+        # self.upload_button = QPushButton("Upload File", self)
+        # self.upload_button.setFixedHeight(60)
+        # # self.upload_button.setFont(font)
         self.send_button = QPushButton("Send", self)
+        self.send_button.setFixedHeight(60)
+        self.send_button.setFont(font_input)
         self.send_button.clicked.connect(self.send_message)
 
         # Side layout
@@ -102,6 +242,8 @@ class G40chatApp(QMainWindow):
         side_layout.addWidget(self.side_menu_title)
         side_layout.addWidget(self.private_chat_button)
         side_layout.addWidget(self.side_menu)
+        side_layout.addWidget(self.upload_button)
+        side_layout.addWidget(self.download_button)
         side_layout.setStretch(4, 1)
         main_layout.addLayout(side_layout)
 
@@ -111,7 +253,7 @@ class G40chatApp(QMainWindow):
         chat_layout.addWidget(self.chat_display)
         
         input_layout = QHBoxLayout()
-        input_layout.addWidget(self.upload_button)
+        # input_layout.addWidget(self.upload_button)
         input_layout.addWidget(self.message_input)
         input_layout.addWidget(self.send_button)
 
@@ -120,6 +262,9 @@ class G40chatApp(QMainWindow):
 
         main_layout.setStretch(0, 1)
         main_layout.setStretch(1, 4)
+
+        self.current_chat = "public_chat"
+        self.current_mode = "public_chat"
 
         self.websocket_thread = WebsocketConnection(self)
         self.websocket_thread.start()
@@ -132,6 +277,7 @@ class G40chatApp(QMainWindow):
 
     def display_message(self, message):
         self.chat_display.append(message)
+        self.cache_chat()
 
     def open_private_chat_dialog(self):
         dialog = PrivateChatDialog(self)
@@ -146,13 +292,68 @@ class G40chatApp(QMainWindow):
     def change_chat(self, item):
         selected_chat = item.text()
         self.chat_display_title.setText(selected_chat)
-        # Clear the chat display for now (you can modify it to display chat history)
+        
+        display_fingerprint = ""     
+        
+        
+        with open ("./client_state.json", "r") as client_state:
+            client_state_data = json.load(client_state)  
+        
         self.chat_display.clear()
+        
+        if selected_chat == "Public Chat":
+            self.current_chat = "public_chat"
+            self.current_mode = "public_chat"
+        else:
+            self.current_mode = "chat"
+            self.current_chat = selected_chat
+        
+        for fp in client_state_data["NS"]:
+            if client_state_data["NS"][fp]["name"] == selected_chat:
+                display_fingerprint = fp
+        
+        
+        if self.current_chat == "public_chat":
+            display_fingerprint = "public_chat"
+        if display_fingerprint in client_state_data["chat_history"]:
+            self.chat_display.append(client_state_data["chat_history"][display_fingerprint])
+
+        
         print(f"Switched to {selected_chat}")
 
+        return display_fingerprint
+
+    def cache_chat(self):
+        client_state_data = {}   
+        with open("./client_state.json", "r") as client_state:
+            client_state_data = json.load(client_state)
+            
+            if self.current_chat == "public_chat":
+                fingerprint = "public_chat"
+            else:
+                for fp in client_state_data["NS"]:
+                    if client_state_data["NS"][fp]["name"] == self.current_chat:
+                        fingerprint = fp
+            client_state_data["chat_history"][fingerprint] = self.chat_display.toHtml()
+        
+        with open("./client_state.json", "w") as client_state:            
+            json.dump(client_state_data, client_state, indent=4)
+            
+        # return client_state_data
+
+    def upload_modal_open(self):
+        dialog = UploadDialog()
+        dialog.exec_() 
+        
+    def download_modal_open(self):
+        dialog = DownloadDialog()
+        dialog.exec_() 
+
+        
 
 # Thread for handling login behind
 class WebsocketConnection(QtCore.QThread):
+    global SERVER_ADDRESS
     message_received = QtCore.pyqtSignal(str)  
 
     def __init__(self, parent=None):
@@ -169,20 +370,14 @@ class WebsocketConnection(QtCore.QThread):
 
     async def websocket_connect(self):
         global ONLINE_USERS
-        ip = "127.0.0.1"
-        port = 8080
-        with open("./server_info.json", 'r') as server_info:
-            data = json.load(server_info)
-        ip = data["master_server_ip"]
-        port = data["master_server_port"]
-        WS_SERVER = f"ws://{ip}:{port}"
+        WS_SERVER = f"ws://{SERVER_ADDRESS}"
         try:
             async with websockets.connect(WS_SERVER) as websocket:                
                 self.websocket = websocket
                 self.connected = True
                 print('-------------------')
                 print('Connecting to')
-                print(f"ws://{ip}:{port}")
+                print(f"ws://{SERVER_ADDRESS}")
                 print('-------------------')
 
                 # Connection request to a server
@@ -203,20 +398,36 @@ class WebsocketConnection(QtCore.QThread):
                 while True:
                     try:
                         message = await websocket.recv()
-                        msg, type = ParseInMessage(message)
-                        if type == "client_list":
+                        msg, msg_type = ParseInMessage(message)
+                        if msg_type == "client_list":
                             ONLINE_USERS = msg
                             print("Online Users:")
                             print(ONLINE_USERS)
                             print()
                             continue  
-                        self.message_received.emit(f"Received: {msg}") 
+                        if (msg_type == "signed_data_chat" or \
+                            msg_type == "signed_data_public_chat") \
+                            and msg != False:
+                            chip_html = f"""
+                            <div style='width:100%; margin: 5px;'>
+                                <span style='font-size:14px;font-weight:bold;'>{msg['sender']}</span><br/>
+                            
+                                <span style='color:{msg['color']}; display: inline-block'>
+                                    {msg['message']}
+                                    
+                                </span>
+                            </div>
+                            """
+                            self.message_received.emit(chip_html) 
+                            # self.message_received.emit(f"<div style='width:100%'><span style='width:70%'; background-color:blue;border-radius:5px;color:{msg['color']}'>{msg['sender']}: {msg['message']}</span></div>") 
                     except websockets.ConnectionClosedOK:
                         print('See you next time.')
                         break
                     except websockets.ConnectionClosedError as e:
                         print(f"Close Error: {e}")
-                        break         
+                        break       
+                    except Exception as e:
+                        print(f"General Exception: {e}")  
         
         except Exception as e:
             print(f"WebSocket connection error: {e}")
@@ -224,13 +435,30 @@ class WebsocketConnection(QtCore.QThread):
     # A handler when the UI receive a send request
     # Assign the send functionality to another thread
     def send_message(self, message):
-        parsedMessage = ParseOutMessage(message, "signed_data", "public_chat", [], ONLINE_USERS)
+        parsedMessage = ParseOutMessage(message, "signed_data", "chat", [], ONLINE_USERS)
         asyncio.run_coroutine_threadsafe(self.websocket_send(parsedMessage), self.loop)
 
     async def websocket_send(self, message):
         if self.connected and self.websocket:
             await self.websocket.send(message) 
 
+
+if (not(os.path.isfile("private_key.pem") and os.path.isfile("public_key.pem"))):
+    generate_key_pair()
+
+if (not(os.path.isfile("client_state.json"))):
+    with open("client_state.example.json", "r") as file:
+        client_state = json.load(file)
+        
+with open("client_state.json", "r") as file:
+        client_state = json.load(file)
+        if (client_state["fingerprint"] == ""):
+            with open("public_key.pem", "r") as pub_f:
+                pub_k = pub_f.read()
+                client_state["fingerprint"] = hashlib.sha256(pub_k.encode()).hexdigest()
+
+with open("client_state.json", "w") as file:
+    json.dump(client_state, file, indent=4)
 
 app = QtWidgets.QApplication(sys.argv)
 window = G40chatApp()

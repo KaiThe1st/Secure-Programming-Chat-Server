@@ -1,5 +1,6 @@
 from Cryptodome.PublicKey import RSA
 
+
 PASSPHRASE = "G40" 
 def generate_key_pair():
     # Generate a 2048-bit RSA key pair
@@ -19,3 +20,6 @@ def generate_key_pair():
         public_file.write(public_key)
 
     print("Keys generated successfully!")
+
+if __name__ == "__main__":
+    generate_key_pair()
