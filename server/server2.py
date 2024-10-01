@@ -5,6 +5,8 @@ from processMessage import ProcessOnlineUsersList
 from processMessage import AssembleOutwardMessage
 from eventLogger import eventLogger
 import json
+import os
+import socket
 
 from aiohttp import web, ClientConnectorError, WSServerHandshakeError
 import aiohttp
@@ -13,9 +15,14 @@ internal_online_users = {
     
 }
 
+IP = socket.gethostbyname(socket.gethostname())
+
 with open("./state.json", 'r') as server_state:
     state = json.load(server_state)
+    state["ip"] = IP
     
+print(f'I am : {IP}')
+
 SELF_ADDRESS = f'{state["ip"]}:{state["port"]}'
 NEIGHBOURS = state["neighbours"]
 ONLINE_NEIGHBOURS = {}
@@ -24,14 +31,16 @@ ONLINE_NEIGHBOURS = {}
 external_online_users = {}
 
 async def init_server_connection():
+    print(NEIGHBOURS)
     for idx in range(len(NEIGHBOURS)):
         
-        if NEIGHBOURS[idx]["address"].strip() == SELF_ADDRESS:
+        if NEIGHBOURS[idx]["address"].strip() == SELF_ADDRESS:# or NEIGHBOURS[idx]["address"].strip() in ONLINE_NEIGHBOURS:
             continue
+        distant_address = "ws://" + NEIGHBOURS[idx]["address"]
         
         async with aiohttp.ClientSession() as session:
             try:
-                distant_address = NEIGHBOURS[idx]["address"]
+
                 server_websocket = await session.ws_connect(distant_address)
                 ONLINE_NEIGHBOURS[distant_address]["socket"] = server_websocket
                 ONLINE_NEIGHBOURS[distant_address]["counter"] = NEIGHBOURS[idx]["counter"]
@@ -55,15 +64,22 @@ async def init_server_connection():
 
             except Exception as e:
                 print(f"An error occurred: {e}")
+            
+    return
 
 # WebSocket server handler
-async def handler(request):
+async def ws_handler(request):
     websocket = web.WebSocketResponse(heartbeat=30)
     await websocket.prepare(request) 
+    
+    await init_server_connection()
        
     
     async for msg in websocket:
         global internal_online_users
+        
+        print("_____________________---")
+        print(msg)
         
         from_user = "-1"
         from_server = 0
@@ -136,7 +152,7 @@ async def handler(request):
                     all_online_users = ProcessOnlineUsersList(internal_online_users, SELF_ADDRESS, external_online_users)
                     client_list_res_message = AssembleOutwardMessage("client_list", "", all_online_users)
                     
-                    # Send updated client list to all clients apart from the sender
+                    # Send updated client list to all other clients apart from the sender
                     for client_id in internal_online_users:
                         if internal_online_users[client_id]["socket"] != websocket:
                             await internal_online_users[client_id]["socket"].send_bytes(client_list_res_message)
@@ -165,8 +181,8 @@ async def handler(request):
             elif type == "client_list_request" and from_server == 0 and sent_from != "-1":
                 
                 all_online_users = ProcessOnlineUsersList(internal_online_users, SELF_ADDRESS, external_online_users)
-                return_message = AssembleOutwardMessage("client_list", "", all_online_users)
-                await websocket.send_bytes(return_message)
+                client_list_res_mess = AssembleOutwardMessage("client_list", "", all_online_users)
+                await websocket.send_bytes(client_list_res_mess)
             
             # HANDLE REQUEST FOR CLIENT UPDATE FROM SERVERS
             elif type == "client_update_request" and from_server == 1:
@@ -198,22 +214,21 @@ async def handler(request):
                     
                 # Send the message to all online neighbour servers
                 if from_server == 0:
+                    prev = ""
                     for neighbour in ONLINE_NEIGHBOURS:
-                        try:
-                            chat_msg = AssembleOutwardMessage("signed_data", "chat", parsed_message)
-                            await ONLINE_NEIGHBOURS[neighbour]["socket"].send_bytes(chat_msg)
-                        except Exception as e:
-                            print(e)
+                        if neighbour in parsed_message["data"]["destination_servers"] and prev != neigbour:
+                            try:
+                                await ONLINE_NEIGHBOURS[neighbour]["socket"].send_bytes(message)
+                                prev = neighbour
+                            except Exception as e:
+                                print(e)
 
                 # Send the message to all online clients
                 for client_id in internal_online_users:
-                    chat_msg = AssembleOutwardMessage("signed_data", "chat", parsed_message)
                     socket = internal_online_users[client_id]["socket"]
                     # if socket != websocket:
-                    await socket.send_bytes(chat_msg) 
-                    print("Hello")
+                    await socket.send_bytes(message) 
                     
-                # await websocket.send_bytes(message)
                         
             # HANDLE PUBLIC CHAT
             elif type == "signed_data_public_chat" and sent_from != "-1":
@@ -221,25 +236,19 @@ async def handler(request):
                 if from_server == 0:
                     for neighbour in ONLINE_NEIGHBOURS:
                         try:
-                            pub_chat_msg = AssembleOutwardMessage("signed_data", "chat", parsed_message)
-                            await ONLINE_NEIGHBOURS[neighbour]["socket"].send_bytes(pub_chat_msg)
+                            await ONLINE_NEIGHBOURS[neighbour]["socket"].send_bytes(message)
                         except Exception as e:
                             print(e)
                 
                 # Send the message to all online clients connected to this master server
                 for client_id in internal_online_users:
-                    pub_chat_msg = AssembleOutwardMessage("signed_data", "chat", parsed_message)
                     socket = internal_online_users[client_id]["socket"]
                     # if socket != websocket:
-                    await socket.send_bytes(pub_chat_msg) 
+                    await socket.send_bytes(message) 
                         
-                        # print("Hello")
-            
             else:
                 await websocket.send_str(f'ACK: {log_message}')
             
-            # await websocket.send_str(f'ACK: {log_message}')
-
         except Exception as e:
             print("=======")
             print(e)
@@ -251,16 +260,15 @@ async def handler(request):
     # When one client is closing the connection
     disconnected_user = "unknown"
     for online_user_id in internal_online_users:
-        print()
-        print(f"All online user: {internal_online_users}")
-        print()
-        print(f"Cur: {online_user_id}")
-        print()
         if (internal_online_users[online_user_id]["socket"] == websocket):
             disconnected_user = online_user_id
+            
+            del internal_online_users[online_user_id]
+            
             try:
                 all_online_users = ProcessOnlineUsersList(internal_online_users, SELF_ADDRESS, external_online_users)
                 client_list_res_message = AssembleOutwardMessage("client_list", "", all_online_users)
+                print(client_list_res_message)
                 
                 # Send updated client list to all clients apart from the sender
                 for client_id in internal_online_users:
@@ -276,7 +284,6 @@ async def handler(request):
             except Exception as e:
                 raise(f"WS exception while closing: {e}")
                     
-            del internal_online_users[online_user_id]
             break
     
     eventLogger("closeConnection", 1, disconnected_user, "")
@@ -289,33 +296,50 @@ async def handle_upload_file(request):
     # segments = filename.split('/')
     # if len(segments) != 1:
     #     return web.Response(text="Wrong format. Try again")
-    
-    data = await request.post()
+    global SELF_ADDRESS
+    try:
+        data = await request.post()
 
-    
-    uploaded_file = data.get("file")
-    
-    if uploaded_file == ("No data"):
-        return web.Response(text="No Data")
-    
-    with open(f"./upload/{uploaded_file.filename}", "wb") as fout:
-        fout.write(uploaded_file.file.read())
 
-    return web.Response(text="file received")
+        uploaded_file = data.get("file")
+
+        if uploaded_file == ("No data"):
+            return web.Response(text="No Data")
+
+        with open(f"./upload/{uploaded_file.filename}", "wb") as fout:
+            fout.write(uploaded_file.file.read())
+
+        response = {
+            'body': {
+                'file_url': f"http://{SELF_ADDRESS}/upload/{uploaded_file.filename}"
+            }
+        }
+
+        return web.Response(text=json.dumps(response), content_type='application/json')
+    except:
+        return web.Response(status=403)
 
 async def handle_download_file(request):
-    pass
+    
+    filename = request.match_info['filename']
+    file_path = os.path.join(os.getcwd(), f'./upload/{filename}')
+
+    if not os.path.exists(file_path):
+        return web.Response(text="File not found", status=404)
+
+    return web.FileResponse(file_path)
+    
 
 
 # Start WS server
 def main():
     
     app = web.Application()
-    app.router.add_get('/', handler)
+    app.router.add_get('/', ws_handler)
     app.router.add_post('/api/upload', handle_upload_file)
     app.router.add_get('/upload/{filename:.*}', handle_download_file)
     
-    web.run_app(app, host=state["host_ip"], port=int(state["port"]))    
+    web.run_app(app, host="0.0.0.0", port=int(state["port"]))
 
 # Run the server
 if __name__ == "__main__":

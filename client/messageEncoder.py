@@ -2,10 +2,9 @@ from Cryptodome.Cipher import AES, PKCS1_OAEP
 from Cryptodome.Random import get_random_bytes
 from Cryptodome.PublicKey import RSA
 from Cryptodome.Hash import SHA256
-from rsaKeyGenerator import generate_key_pair
-import hashlib
 from base64 import b64encode, b64decode
 import json
+from hex_to_bin import hex_to_bin
 
 IV_LENGTH = 16
 KEY_LENGTH = 16
@@ -76,7 +75,14 @@ def decryptMessage(ciphertext, iv, enc_sym_keys):
         cipher = AES.new(decrypted_sym_key, AES.MODE_GCM, iv)
         chat = cipher.decrypt_and_verify(ciphertext,auth_tag)
         chat = json.loads(chat.decode('utf-8'))
-        chat["participants"] = [b64decode(user.encode('utf8')).decode() for user in chat["participants"]]
+        for i in range(len(chat["participants"])):
+            decoded = b64decode(chat["participants"][i].encode('utf8'))
+            try: 
+                hex = decoded.decode('utf8')
+                chat["participants"][i] = hex_to_bin(hex)
+            except UnicodeDecodeError:
+                chat["participants"][i] = hex_to_bin(decoded)
+        # chat["participants"] = [b64decode(user.encode('utf8')).decode() for user in chat["participants"]]
     except:
         return False
     return chat

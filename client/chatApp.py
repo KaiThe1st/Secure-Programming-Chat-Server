@@ -1,323 +1,3 @@
-# from parseMessage import ParseOutMessage
-# from parseMessage import ParseInMessage
-# import asyncio
-# import websockets
-# import json
-# import sys
-# import os
-# from PyQt5 import QtWidgets
-# from PyQt5.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QTextEdit, QLineEdit, QLabel, QPushButton, QListWidget
-# from PyQt5 import QtCore
-# from PyQt5.QtCore import Qt
-# from rsaKeyGenerator import generate_key_pair
-# import hashlib
-
-# # logging.basicConfig(level=logging.DEBUG)
-# ONLINE_USERS = []
-# class PrivateChatDialog(QtWidgets.QDialog):
-#     def __init__(self, online_users, parent=None):
-#         super().__init__(parent)
-#         self.setWindowTitle("Start Private Chat")
-#         self.setGeometry(300, 200, 400, 300)
-        
-#         layout = QVBoxLayout(self)
-        
-#         self.label = QLabel("Select users to chat with:", self)
-#         layout.addWidget(self.label)
-        
-#         # List of online users with multi-selection mode
-#         self.user_list = QtWidgets.QListWidget(self)
-
-#         print()
-#         print()
-#         print(ONLINE_USERS)
-#         print()
-#         print()
-        
-#         clients = []
-#         # Check if online_users is structured as expected
-#         for entry in ONLINE_USERS:
-#             clients = entry['clients']
-
-#         # print(clients)
-#         # Add each client to the user_list
-#         for user in clients:
-#             self.user_list.addItem(user)
-
-#         self.user_list.setSelectionMode(QtWidgets.QAbstractItemView.MultiSelection)  # Allow multiple selections
-#         layout.addWidget(self.user_list)
-        
-#         # Create button to start private chat
-#         self.create_button = QPushButton("Create", self)
-#         self.create_button.clicked.connect(self.create_chat)
-#         layout.addWidget(self.create_button)
-
-#     def create_chat(self):
-#         selected_items = self.user_list.selectedItems()
-#         if selected_items:
-#             users = [item.text() for item in selected_items]  # Get a list of selected users
-#             print(f"Starting private chat with: {', '.join(users)}")
-#             self.accept()  # Close the dialog
-#             self.result = users  # Return the list of selected users
-
-
-# class G40chatApp(QMainWindow):
-#     def __init__(self):
-#         super().__init__()
-#         self.setWindowTitle("Group40chatApp")
-#         self.setGeometry(100, 100, 800, 600)
-        
-#         main_widget = QWidget(self)
-#         self.setCentralWidget(main_widget)
-#         main_layout = QHBoxLayout(main_widget)
-
-#         # Side menu (on the left)
-#         self.side_menu = QListWidget(self)
-#         self.side_menu.setSelectionMode(QListWidget.SingleSelection)
-        
-#         self.side_menu_title = QLabel("Chats", self)
-#         self.side_menu_title.setStyleSheet("font-weight: bold; font-size: 16px;")
-        
-#         # Add "Public Chat" at the start
-#         self.side_menu.addItem("Public Chat")
-#         self.side_menu.itemClicked.connect(self.change_chat)
-
-#         # Button to initiate new private chat
-#         self.private_chat_button = QPushButton("New Private Chat", self)
-#         self.private_chat_button.clicked.connect(self.open_private_chat_dialog)
-
-#         # Chat display (in the center)
-#         self.chat_display = QTextEdit(self)
-#         self.chat_display.setReadOnly(True)
-        
-#         self.chat_display_title = QLabel("Public Chat", self)
-#         self.chat_display_title.setStyleSheet("font-weight: bold; font-size: 16px;")
-
-#         # Message input (bottom)
-#         self.message_input = QLineEdit(self)
-#         self.message_input.returnPressed.connect(self.send_message)
-        
-#         self.upload_button = QPushButton("Upload File", self)
-#         self.send_button = QPushButton("Send", self)
-#         self.send_button.clicked.connect(self.send_message)
-
-#         # Side layout
-#         side_layout = QVBoxLayout()
-#         side_layout.addWidget(self.side_menu_title)
-#         side_layout.addWidget(self.private_chat_button)
-#         side_layout.addWidget(self.side_menu)
-#         side_layout.setStretch(4, 1)
-#         main_layout.addLayout(side_layout)
-
-#         # Chat layout
-#         chat_layout = QVBoxLayout()
-#         chat_layout.addWidget(self.chat_display_title)
-#         chat_layout.addWidget(self.chat_display)
-        
-#         input_layout = QHBoxLayout()
-#         input_layout.addWidget(self.upload_button)
-#         input_layout.addWidget(self.message_input)
-#         input_layout.addWidget(self.send_button)
-
-#         chat_layout.addLayout(input_layout)
-#         main_layout.addLayout(chat_layout)
-
-#         main_layout.setStretch(0, 1)
-#         main_layout.setStretch(1, 4)
-
-#         self.websocket_thread = WebsocketConnection(self)
-#         self.websocket_thread.start()
-
-#     def send_message(self):
-#         message = self.message_input.text()
-#         if message:
-#             self.websocket_thread.send_message(message)
-#             self.message_input.clear()
-
-#     def display_message(self, message):
-#         self.chat_display.append(message)
-        
-#     def populate_client_list(self, client_list):
-#         ONLINE_USERS = client_list
-#         if len(client_list) < 1:
-#             return
-#         for user in client_list:
-#             fp = hashlib.sha256(user.encode("utf8")).hexdigest()
-#             with open("client_state.json","r") as client_state_json:
-#                 client_state = json.load(client_state_json)
-#                 if fp in client_state["NS"]:
-#                     name = client_state["NS"][fp]
-#             self.side_menu.addItem(name)
-#         print("Client list populated:", client_list)
-        
-#     def update_client_list(self, updated_client_list):
-#         new_users = set(updated_client_list) - set(ONLINE_USERS)
-#         removed_users = set(ONLINE_USERS) - set(updated_client_list)
-#         for user in new_users:
-#             fp = hashlib.sha256(user.encode("utf8")).hexdigest()
-#             with open("client_state.json","r") as client_state_json:
-#                 client_state = json.load(client_state_json)
-#                 if fp in client_state["NS"]:
-#                     name = client_state["NS"][fp]
-#             self.side_menu.addItem(name)
-
-#         # Remove users who left the chat
-#         for user in removed_users:
-#             fp = hashlib.sha256(user.encode("utf8")).hexdigest()
-#             with open("client_state.json","r") as client_state_json:
-#                 client_state = json.load(client_state_json)
-#                 if fp in client_state["NS"]:
-#                     name = client_state["NS"][fp]
-#             # Find and remove the corresponding item
-#             items = self.side_menu.findItems(user, Qt.MatchExactly)
-#             if items:
-#                 for item in items:
-#                     self.side_menu.takeItem(self.side_menu.row(item))
-
-#         # Update the current user list to reflect the latest state
-#         ONLINE_USERS = updated_client_list
-#         print("Client list updated:", updated_client_list)
-
-#     def open_private_chat_dialog(self):
-#         dialog = PrivateChatDialog(self)
-#         if dialog.exec_() == QtWidgets.QDialog.Accepted:
-#             selected_users = dialog.result
-#             if selected_users:
-#                 # Add the private chat with multiple users to the side menu
-#                 chat_name = f"Private Chat with {', '.join(selected_users)}"
-#                 self.side_menu.addItem(chat_name)
-#                 print(f"Private chat initiated with: {', '.join(selected_users)}")
-
-#     def change_chat(self, item):
-#         selected_chat = item.text()
-#         self.chat_display_title.setText(selected_chat)
-#         # Clear the chat display for now (you can modify it to display chat history)
-#         self.chat_display.clear()
-#         print(f"Switched to {selected_chat}")
-
-
-# # Thread for handling login behind
-# class WebsocketConnection(QtCore.QThread):
-#     message_received = QtCore.pyqtSignal(str) 
-    
-#     #new stuff
-#     updated_client_list = QtCore.pyqtSignal(list)
-#     populate_client_list = QtCore.pyqtSignal(list)
-
-#     def __init__(self, parent=None):
-#         super().__init__(parent)
-#         self.connected = False
-#         self.websocket = None
-#         self.loop = None
-
-#     def run(self):
-#         self.loop = asyncio.new_event_loop()
-#         asyncio.set_event_loop(self.loop)
-#         self.loop.run_until_complete(self.websocket_connect())
-
-
-#     async def websocket_connect(self):
-#         global ONLINE_USERS
-#         ip = "127.0.0.1"
-#         port = 8080
-#         with open("./server_info.json", 'r') as server_info:
-#             data = json.load(server_info)
-#         ip = data["master_server_ip"]
-#         port = data["master_server_port"]
-#         WS_SERVER = f"ws://{ip}:{port}"
-#         try:
-#             async with websockets.connect(WS_SERVER) as websocket:                
-#                 self.websocket = websocket
-#                 self.connected = True
-#                 print('-------------------')
-#                 print('Connecting to')
-#                 print(f"ws://{ip}:{port}")
-#                 print('-------------------')
-
-#                 # Connection request to a server
-#                 helloMessage = ParseOutMessage("", "signed_data", "hello", [], ONLINE_USERS)
-#                 await self.websocket.send(helloMessage)
-#                 response = await self.websocket.recv()
-#                 print(response)
-
-#                 # Request online clients in approachable servers
-#                 requestClientList = ParseOutMessage("", "client_list_request", "", [], ONLINE_USERS)
-#                 await self.websocket.send(requestClientList)
-#                 response = await self.websocket.recv()
-#                 response, msg_type = ParseInMessage(response)
-#                 self.populate_client_list.emit(response)
-#                 print(response)
-                
-                
-#                 # Continuously waiting for message from server
-#                 while True:
-#                     try:
-#                         message = await websocket.recv()
-#                         msg, msg_type = ParseInMessage(message)
-#                         if msg_type == "client_list":
-#                             # ONLINE_USERS = msg
-#                             print("Online Users:")
-#                             print(f"{msg_type}")
-#                             print()
-#                             self.updated_client_list.emit(msg)
-#                             continue  
-#                         if msg_type == "signed_data_chat" or msg_type == "signed_data_public_chat":
-#                             self.message_received.emit(f"{msg["sender"]}: {msg["message"]}") 
-#                     except websockets.ConnectionClosedOK:
-#                         print('See you next time.')
-#                         break
-#                     except websockets.ConnectionClosedError as e:
-#                         print(f"Close Error: {e}")
-#                         break       
-#                     except Exception as e:
-#                         print(f"General Exception: {e}")  
-        
-#         except Exception as e:
-#             print(f"WebSocket connection error: {e}")
-
-#     # A handler when the UI receive a send request
-#     # Assign the send functionality to another thread
-#     def send_message(self, message):
-#         parsedMessage = ParseOutMessage(message, "signed_data", "chat", [], ONLINE_USERS)
-#         asyncio.run_coroutine_threadsafe(self.websocket_send(parsedMessage), self.loop)
-
-#     async def websocket_send(self, message):
-#         if self.connected and self.websocket:
-#             await self.websocket.send(message) 
-
-# # A handler to generate files (pem,json)
-
-# if (not(os.path.isfile("private_key.pem") and os.path.isfile("public_key.pem"))):
-#     generate_key_pair()
-
-# if (not(os.path.isfile("client_state.json"))):
-#     with open("client_state.example.json", "r") as file:
-#         client_state = json.load(file)
-#     with open("client_state.json", "w") as file:
-#         json.dump(client_state, file, indent=4) 
-        
-# with open("client_state.json", "r") as file:
-#         client_state = json.load(file)
-#         if (client_state["fingerprint"] == ""):
-#             with open("public_key.pem", "r") as pub_f:
-#                 pub_k = pub_f.read()
-#                 client_state["fingerprint"] = hashlib.sha256(pub_k.encode()).hexdigest()
-
-# with open("client_state.json", "w") as file:
-#     json.dump(client_state, file, indent=4)
-
-
-# app = QtWidgets.QApplication(sys.argv)
-# window = G40chatApp()
-# window.showMaximized()
-
-# window.websocket_thread.message_received.connect(window.display_message)
-# window.websocket_thread.updated_client_list.connect(window.update_client_list)
-# window.websocket_thread.populate_client_list.connect(window.populate_client_list)
-
-# sys.exit(app.exec_())
-
-
 
 from parseMessage import ParseOutMessage
 from parseMessage import ParseInMessage
@@ -330,9 +10,8 @@ import json
 import sys
 import hashlib
 from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QTextEdit, QLineEdit, QLabel, QPushButton, QListWidget, QDialog, QFileDialog
+from PyQt5.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QTextEdit, QLineEdit, QLabel, QPushButton, QListWidget, QDialog, QFileDialog, QMessageBox
 from PyQt5 import QtCore
-from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
 import logging
 
@@ -342,6 +21,12 @@ ONLINE_USERS = []
 CURRENT_MODE = "public_chat"
 PARTICIPANTS = []
 
+# with open("./server_info.json", 'r') as server_info:
+#         data = json.load(server_info)
+#         ip = data["master_server_ip"]
+#         port = data["master_server_port"]
+
+# SERVER_ADDRESS = f'{ip}:{port}'
 
 
 class UploadDialog(QDialog):
@@ -455,18 +140,14 @@ class PrivateChatDialog(QtWidgets.QDialog):
         # List of online users with multi-selection mode
         self.user_list = QtWidgets.QListWidget(self)
 
-        print()
-        print()
-        print(ONLINE_USERS)
-        print()
-        print()
 
         # Check if online_users is structured as expected
         with open('client_state.json', 'r') as file:
             chat_data = json.load(file)
             people = chat_data["NS"]
             for person_id, person_data in people.items():
-                self.user_list.addItem(person_data["name"])
+                if person_id != chat_data["fingerprint"]:
+                    self.user_list.addItem(person_data["name"])
             # for entry in people:
             #     self.user_list.addItem(entry["name"])
 
@@ -479,10 +160,11 @@ class PrivateChatDialog(QtWidgets.QDialog):
         layout.addWidget(self.create_button)
 
     def create_chat(self):
+        users = []
         selected_items = self.user_list.selectedItems()
         if selected_items:
             users = [item.text() for item in selected_items]  # Get a list of selected users
-            print(f"Starting private chat with: {', '.join(users)}")
+            # print(f"Creating private chat with: {', '.join(users)}")
             self.accept()  # Close the dialog
             self.result = users  # Return the list of selected users
 
@@ -590,6 +272,7 @@ class G40chatApp(QMainWindow):
         message = self.message_input.text()
         if message:
             self.websocket_thread.send_message(message)
+            # self.chat_display.append()
             self.message_input.clear()
 
     def display_message(self, message):
@@ -639,7 +322,7 @@ class G40chatApp(QMainWindow):
                     if client_state["NS"][fp]["public_key"] in removed_users:
                         name = client_state["NS"][fp]["name"]
             # Find and remove the corresponding item
-                        items = self.side_menu.findItems(name, Qt.MatchExactly)
+                        items = self.side_menu.findItems(name, QtCore.Qt.MatchExactly)
                         if items:
                             for item in items:
                                 self.side_menu.takeItem(self.side_menu.row(item))
@@ -652,16 +335,48 @@ class G40chatApp(QMainWindow):
         dialog = PrivateChatDialog(self)
         if dialog.exec_() == QtWidgets.QDialog.Accepted:
             selected_users = dialog.result
+                
+            selected_users.sort()
+            
+            
+            existing_chats = [self.side_menu.item(i).text().strip() for i in range(self.side_menu.count())]
             if selected_users:
                 # Add the private chat with multiple users to the side menu
                 chat_name = f"{', '.join(selected_users)}"
-                self.side_menu.addItem(chat_name)
-                print(f"Private chat initiated with: {', '.join(selected_users)}")
+                if chat_name.strip() not in existing_chats:
+                    self.side_menu.addItem(chat_name)
+                    self.show_alert("Chat creted successfully", f"Private chat initiated with: {chat_name}.", "Info")
+                else:
+                    self.show_alert("Creation error", f"Private chat with {chat_name} already exists.", "Error")
+
+                    
+    def show_alert(self, title, message, type):
+        self.alert = QMessageBox()
+        self.alert.setWindowTitle(title)
+        self.alert.setText(message)
+        self.alert.setStandardButtons(QMessageBox.Ok)
+        
+    
+        if type == "Info":
+            self.alert.setIcon(QMessageBox.Information)
+        elif type == "Error":
+            self.alert.setIcon(QMessageBox.Warning)
+        
+        else:
+            return
+        
+        # Auto close
+        QtCore.QTimer.singleShot(5000, self.alert.close)
+
+        self.alert.exec_()
+
 
     def change_chat(self, item):
         global PARTICIPANTS, CURRENT_MODE
         selected_chat = item.text()
         self.chat_display_title.setText(selected_chat)
+        
+        # print(CURRENT_MODE)
         
         if selected_chat == "Public Chat":
             self.current_chat = "public_chat"
@@ -706,7 +421,7 @@ class WebsocketConnection(QtCore.QThread):
     message_received = QtCore.pyqtSignal(str)  
     populate_client_list = QtCore.pyqtSignal(dict)
     update_client_list = QtCore.pyqtSignal(dict, dict)
-
+    
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -736,19 +451,19 @@ class WebsocketConnection(QtCore.QThread):
                 helloMessage = ParseOutMessage("", "signed_data", "hello", [], ONLINE_USERS)
                 await self.websocket.send(helloMessage)
                 response = await self.websocket.recv()
-                print(response)
+                # print(response)
 
                 # Request online clients in approachable servers
                 requestClientList = ParseOutMessage("", "client_list_request", "", [], ONLINE_USERS)
                 await self.websocket.send(requestClientList)
                 response = await self.websocket.recv()
-                response, msg_type = ParseInMessage(response)
-                self.populate_client_list.emit(response)
-                ONLINE_USERS = response
-                # print("Online Users:")
-                # print(ONLINE_USERS)
-                # print()
-                # print(response)
+                parsed_response, response_type = ParseInMessage(response)
+                if response_type == "client_list":
+                    self.populate_client_list.emit(parsed_response)
+                    ONLINE_USERS = parsed_response
+                    print("Online Users:")
+                    print(ONLINE_USERS)
+                    print()
                 
                 
                 # Continuously waiting for message from server
@@ -757,17 +472,18 @@ class WebsocketConnection(QtCore.QThread):
                         message = await websocket.recv()
                         msg, msg_type = ParseInMessage(message)
                         if msg_type == "client_list":
-                            # print("Online Users:")
-                            # print(ONLINE_USERS)
-                            # print()
                             curr_client_list = ONLINE_USERS
                             self.update_client_list.emit(msg, curr_client_list)
+                            
                             ONLINE_USERS = msg
+                            print("Online Users:")
+                            print(ONLINE_USERS)
+                            print()
                             continue  
                         if (msg_type == "signed_data_chat" or \
                             msg_type == "signed_data_public_chat") \
                             and msg != False:
-                            chip_html = f"""
+                            displye_msg = f"""
                             <div style='width:100%; margin: 5px;'>
                                 <span style='font-size:14px;font-weight:bold;'>{msg['sender']}</span><br/>
                             
@@ -777,7 +493,7 @@ class WebsocketConnection(QtCore.QThread):
                                 </span>
                             </div>
                             """
-                            self.message_received.emit(chip_html) 
+                            self.message_received.emit(displye_msg) 
                             # self.message_received.emit(f"<div style='width:100%'><span style='width:70%'; background-color:blue;border-radius:5px;color:{msg['color']}'>{msg['sender']}: {msg['message']}</span></div>") 
                     except websockets.ConnectionClosedOK:
                         print('See you next time.')
@@ -797,6 +513,37 @@ class WebsocketConnection(QtCore.QThread):
         global CURRENT_MODE, PARTICIPANTS
         parsedMessage = ParseOutMessage(message, "signed_data", CURRENT_MODE, PARTICIPANTS, ONLINE_USERS)
         asyncio.run_coroutine_threadsafe(self.websocket_send(parsedMessage), self.loop)
+        
+        attribution_text = ""
+        
+        with open ("./client_state.json", "r") as client_state:
+                client_state_data = json.load(client_state)
+        if CURRENT_MODE == "chat" and len(PARTICIPANTS) != 0:
+            participant_names_list = []
+            for fp in PARTICIPANTS[1:]:
+                if fp in client_state_data["NS"]:
+                    participant_names_list.append(client_state_data["NS"][fp]["name"])
+            participant_names_list = list(set(participant_names_list))
+            if len(participant_names_list) == 0:
+                participant_names_list = ["Yourself"]
+            attribution_text = "&gt;&gt; <span style='color:green'>[TO]</span> " + ", ".join(participant_names_list)
+        elif CURRENT_MODE == "public_chat":
+            attribution_text = "&gt;&gt; <span style='color:red'>[PUBLIC CHAT]</span> <span style='color:green'>[TO]</span> ALL"
+
+        my_color = client_state_data["NS"][client_state_data["fingerprint"]]["color"]
+
+        displye_msg = f"""
+            <div style='width:100%; margin: 5px;'>
+                <span style='font-size:14px;font-weight:bold;'>{attribution_text}</span><br/>
+            
+                <span style='color:{my_color}; display: inline-block'>
+                    {message}
+                    
+                </span>
+            </div>
+            """
+        self.message_received.emit(displye_msg) 
+        
 
     async def websocket_send(self, message):
         if self.connected and self.websocket:
@@ -833,11 +580,9 @@ with open("./server_info.json", 'r') as server_info:
 
 SERVER_ADDRESS = f'{ip}:{port}'
 
-
-
 app = QtWidgets.QApplication(sys.argv)
 window = G40chatApp()
-window.showMaximized()
+window.show()
 
 window.websocket_thread.message_received.connect(window.display_message)
 window.websocket_thread.populate_client_list.connect(window.populate_client_list)
