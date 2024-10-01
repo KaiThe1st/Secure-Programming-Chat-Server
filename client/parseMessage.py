@@ -92,7 +92,9 @@ def ParseOutMessage (message, msg_type, subtype, receiver, online_users):
             
         if subtype == "public_chat":
             parsedMessage["data"]["sender"] = FINGERPRINT
+            parsedMessage["data"]["sender"] = FINGERPRINT
             parsedMessage["data"]["message"] = message
+            
             
         # Random stuff for now
         parsedMessage["counter"] = state_data["counter"]

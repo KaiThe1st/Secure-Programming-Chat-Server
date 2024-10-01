@@ -112,3 +112,12 @@ if __name__ == "__main__":
         print(f"Address {server}:")
         for client in user["clients"]:
             print(f"    {client}")
+    
+    with open("client_state.json","r") as client_state_json:
+        client_state = json.load(client_state_json)
+        all_users = client_state["online_users"]
+    for user in all_users:
+        server = user["address"]
+        print(f"Address {server}:")
+        for client in user["clients"]:
+            print(f"    {client}")

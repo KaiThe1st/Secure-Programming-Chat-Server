@@ -32,10 +32,10 @@ def rsaVerify(message, signature, pub_key):
     verifier = pss.new(rsaKey, salt_bytes=32)
     try:
         verifier.verify(hash, signature)
+        return True
     except (ValueError):
         raise ValueError("Invalid signature")
 
-    return True
 
 if __name__ == "__main__":
     signature = rsaSign("hello")
