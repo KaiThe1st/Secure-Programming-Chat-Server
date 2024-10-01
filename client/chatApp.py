@@ -21,12 +21,12 @@ ONLINE_USERS = []
 CURRENT_MODE = "public_chat"
 PARTICIPANTS = []
 
-with open("./server_info.json", 'r') as server_info:
-        data = json.load(server_info)
-        ip = data["master_server_ip"]
-        port = data["master_server_port"]
+# with open("./server_info.json", 'r') as server_info:
+#         data = json.load(server_info)
+#         ip = data["master_server_ip"]
+#         port = data["master_server_port"]
 
-SERVER_ADDRESS = f'{ip}:{port}'
+# SERVER_ADDRESS = f'{ip}:{port}'
 
 
 class UploadDialog(QDialog):
@@ -189,11 +189,11 @@ class G40chatApp(QMainWindow):
         # Add "Public Chat" at the start
         self.side_menu.addItem("Public Chat")
         
-        with open("./client_state.json", "r") as client_state:
-            state_data = json.load(client_state)
+        # with open("./client_state.json", "r") as client_state:
+        #     state_data = json.load(client_state)
         
-        for signature in state_data["NS"]:
-            self.side_menu.addItem(state_data["NS"][signature]["name"])
+        # for signature in state_data["NS"]:
+        #     self.side_menu.addItem(state_data["NS"][signature]["name"])
             
         self.side_menu.itemClicked.connect(self.change_chat)
         
@@ -277,6 +277,59 @@ class G40chatApp(QMainWindow):
 
     def display_message(self, message):
         self.chat_display.append(message)
+        
+    def populate_client_list(self, client_list):
+        online = []
+        assert client_list["type"] == "client_list"
+        assert len(client_list["servers"]) > 0
+        for server in client_list["servers"]:
+            for client in server["clients"]:
+                online.append(client)
+                
+        with open("client_state.json","r") as client_state_json:
+                client_state = json.load(client_state_json)
+                for fp in client_state["NS"]:
+                    if client_state["NS"][fp]["public_key"] in online:
+                        name = client_state["NS"][fp]["name"]
+                        self.side_menu.addItem(name)
+        print("Client list populated:", client_list)
+        
+    def update_client_list(self, updated_client_list, curr_client_list):
+        new_list = []
+        curr_list = []
+        assert updated_client_list["type"] == "client_list"
+        assert curr_client_list["type"] == "client_list"
+        assert len(updated_client_list["servers"]) > 0
+        assert len(curr_client_list["servers"]) > 0
+        for server in updated_client_list["servers"]:
+            for client in server["clients"]:
+                new_list.append(client)
+        for server in curr_client_list["servers"]:
+            for client in server["clients"]:
+                curr_list.append(client)
+                
+        new_users = set(new_list) - set(curr_list)
+        removed_users = set(curr_list) - set(new_list)
+        print(removed_users)
+        with open("client_state.json","r") as client_state_json:
+                client_state = json.load(client_state_json)
+                for fp in client_state["NS"]:
+                    if client_state["NS"][fp]["public_key"] in new_users:
+                        name = client_state["NS"][fp]["name"]
+                        self.side_menu.addItem(name)
+
+        # Remove users who left the chat
+                    if client_state["NS"][fp]["public_key"] in removed_users:
+                        name = client_state["NS"][fp]["name"]
+            # Find and remove the corresponding item
+                        items = self.side_menu.findItems(name, QtCore.Qt.MatchExactly)
+                        if items:
+                            for item in items:
+                                self.side_menu.takeItem(self.side_menu.row(item))
+
+        # Update the current user list to reflect the latest state
+        print("Client list updated:", updated_client_list)
+
 
     def open_private_chat_dialog(self):
         dialog = PrivateChatDialog(self)
@@ -323,7 +376,7 @@ class G40chatApp(QMainWindow):
         selected_chat = item.text()
         self.chat_display_title.setText(selected_chat)
         
-        print(CURRENT_MODE)
+        # print(CURRENT_MODE)
         
         if selected_chat == "Public Chat":
             self.current_chat = "public_chat"
@@ -350,7 +403,7 @@ class G40chatApp(QMainWindow):
         CURRENT_MODE = self.current_mode
         
         print(f"Switched to {selected_chat}")
-        
+
 
     def upload_modal_open(self):
         dialog = UploadDialog()
@@ -366,6 +419,9 @@ class G40chatApp(QMainWindow):
 class WebsocketConnection(QtCore.QThread):
     global SERVER_ADDRESS
     message_received = QtCore.pyqtSignal(str)  
+    populate_client_list = QtCore.pyqtSignal(dict)
+    update_client_list = QtCore.pyqtSignal(dict, dict)
+    
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -403,6 +459,7 @@ class WebsocketConnection(QtCore.QThread):
                 response = await self.websocket.recv()
                 parsed_response, response_type = ParseInMessage(response)
                 if response_type == "client_list":
+                    self.populate_client_list.emit(parsed_response)
                     ONLINE_USERS = parsed_response
                     print("Online Users:")
                     print(ONLINE_USERS)
@@ -415,6 +472,9 @@ class WebsocketConnection(QtCore.QThread):
                         message = await websocket.recv()
                         msg, msg_type = ParseInMessage(message)
                         if msg_type == "client_list":
+                            curr_client_list = ONLINE_USERS
+                            self.update_client_list.emit(msg, curr_client_list)
+                            
                             ONLINE_USERS = msg
                             print("Online Users:")
                             print(ONLINE_USERS)
@@ -463,7 +523,7 @@ class WebsocketConnection(QtCore.QThread):
             for fp in PARTICIPANTS[1:]:
                 if fp in client_state_data["NS"]:
                     participant_names_list.append(client_state_data["NS"][fp]["name"])
-            participant_names_list = list(set([participant_names_list]))
+            participant_names_list = list(set(participant_names_list))
             if len(participant_names_list) == 0:
                 participant_names_list = ["Yourself"]
             attribution_text = "&gt;&gt; <span style='color:green'>[TO]</span> " + ", ".join(participant_names_list)
@@ -504,14 +564,29 @@ with open("client_state.json", "r") as file:
         with open("public_key.pem", "r") as pub_f:
             pub_k = pub_f.read()
             client_state["fingerprint"] = hashlib.sha256(pub_k.encode()).hexdigest()
-
 with open("client_state.json", "w") as file:
     json.dump(client_state, file, indent=4)
+
+if (not(os.path.isfile("server_info.json"))):
+    with open("server_info.example.json", "r") as file:
+        client_state = json.load(file)
+    with open("server_info.json", "w") as file:
+        json.dump(client_state, file, indent=4)
+        
+with open("./server_info.json", 'r') as server_info:
+    data = json.load(server_info)
+    ip = data["master_server_ip"]
+    port = data["master_server_port"]
+
+SERVER_ADDRESS = f'{ip}:{port}'
 
 app = QtWidgets.QApplication(sys.argv)
 window = G40chatApp()
 window.show()
 
 window.websocket_thread.message_received.connect(window.display_message)
+window.websocket_thread.populate_client_list.connect(window.populate_client_list)
+window.websocket_thread.update_client_list.connect(window.update_client_list)
+
 
 sys.exit(app.exec_())

@@ -72,7 +72,7 @@ async def ws_handler(request):
     websocket = web.WebSocketResponse(heartbeat=30)
     await websocket.prepare(request) 
     
-    await init_server_connection()
+    # await init_server_connection()
        
     
     async for msg in websocket:
