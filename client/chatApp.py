@@ -510,7 +510,7 @@ with open("client_state.json", "w") as file:
 
 app = QtWidgets.QApplication(sys.argv)
 window = G40chatApp()
-window.showMaximized()
+window.show()
 
 window.websocket_thread.message_received.connect(window.display_message)
 

@@ -31,14 +31,16 @@ ONLINE_NEIGHBOURS = {}
 external_online_users = {}
 
 async def init_server_connection():
+    print(NEIGHBOURS)
     for idx in range(len(NEIGHBOURS)):
         
-        if NEIGHBOURS[idx]["address"].strip() == SELF_ADDRESS or NEIGHBOURS[idx]["address"].strip() in ONLINE_NEIGHBOURS:
+        if NEIGHBOURS[idx]["address"].strip() == SELF_ADDRESS:# or NEIGHBOURS[idx]["address"].strip() in ONLINE_NEIGHBOURS:
             continue
+        distant_address = "ws://" + NEIGHBOURS[idx]["address"]
         
         async with aiohttp.ClientSession() as session:
             try:
-                distant_address = NEIGHBOURS[idx]["address"]
+
                 server_websocket = await session.ws_connect(distant_address)
                 ONLINE_NEIGHBOURS[distant_address]["socket"] = server_websocket
                 ONLINE_NEIGHBOURS[distant_address]["counter"] = NEIGHBOURS[idx]["counter"]
@@ -75,6 +77,9 @@ async def ws_handler(request):
     
     async for msg in websocket:
         global internal_online_users
+        
+        print("_____________________---")
+        print(msg)
         
         from_user = "-1"
         from_server = 0
@@ -257,9 +262,13 @@ async def ws_handler(request):
     for online_user_id in internal_online_users:
         if (internal_online_users[online_user_id]["socket"] == websocket):
             disconnected_user = online_user_id
+            
+            del internal_online_users[online_user_id]
+            
             try:
                 all_online_users = ProcessOnlineUsersList(internal_online_users, SELF_ADDRESS, external_online_users)
                 client_list_res_message = AssembleOutwardMessage("client_list", "", all_online_users)
+                print(client_list_res_message)
                 
                 # Send updated client list to all clients apart from the sender
                 for client_id in internal_online_users:
@@ -275,7 +284,6 @@ async def ws_handler(request):
             except Exception as e:
                 raise(f"WS exception while closing: {e}")
                     
-            del internal_online_users[online_user_id]
             break
     
     eventLogger("closeConnection", 1, disconnected_user, "")
