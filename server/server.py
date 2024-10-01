@@ -1,18 +1,28 @@
 import asyncio
-import websockets
+# import websockets
 from processMessage import ProcessInMessage
 from processMessage import ProcessOnlineUsersList
 from processMessage import AssembleOutwardMessage
 from eventLogger import eventLogger
 import json
+import os
+import socket
+
+from aiohttp import web, ClientConnectorError, WSServerHandshakeError
+import aiohttp
 
 internal_online_users = {
     
 }
 
+IP = socket.gethostbyname(socket.gethostname())
+
 with open("./state.json", 'r') as server_state:
     state = json.load(server_state)
+    state["ip"] = IP
     
+print(f'I am : {IP}')
+
 SELF_ADDRESS = f'{state["ip"]}:{state["port"]}'
 NEIGHBOURS = state["neighbours"]
 ONLINE_NEIGHBOURS = {}
@@ -20,211 +30,56 @@ ONLINE_NEIGHBOURS = {}
 # internal_online_users[SELF_ADDRESS] = {}
 external_online_users = {}
 
-# WebSocket server handler
-async def handler(websocket):
-    
-    # Send server_hello when the 
+async def init_server_connection():
     for idx in range(len(NEIGHBOURS)):
-        if NEIGHBOURS[idx]["address"].strip() == SELF_ADDRESS:
-            continue
-        server_websocket = await websockets.connect(NEIGHBOURS[idx]["address"])
-        NEIGHBOURS[idx]["socket"] = server_websocket
         
-        # try:
-        #     async with websockets.connect(f'ws://{dest}') as to_server_websocket:
-        #         await to_server_websocket.send(message)
-        #         print("hello")
-        # except:
-        #     pass
+        if NEIGHBOURS[idx]["address"].strip() == SELF_ADDRESS or NEIGHBOURS[idx]["address"].strip() in ONLINE_NEIGHBOURS:
+            continue
+        
+        async with aiohttp.ClientSession() as session:
+            try:
+                distant_address = NEIGHBOURS[idx]["address"]
+                server_websocket = await session.ws_connect(distant_address)
+                ONLINE_NEIGHBOURS[distant_address]["socket"] = server_websocket
+                ONLINE_NEIGHBOURS[distant_address]["counter"] = NEIGHBOURS[idx]["counter"]
+                
+                # Send 
+                server_hello_mess = AssembleOutwardMessage("singed_data", "server_hello", SELF_ADDRESS)
+                await server_websocket.send_bytes(server_hello_mess)
+                
+                client_update_request_mess = AssembleOutwardMessage("client_update_request", "", "")
+                await server_websocket.send_bytes(client_update_request_mess)
+                
+            except ClientConnectorError as e:
+            # Handle connection issues (e.g., server is down or unreachable)
+                print(f"Connection error: {e}")
+        
+            except WSServerHandshakeError as e:
+                print(f"WebSocket handshake failed: {e}")
+
+            except asyncio.TimeoutError:
+                print("Connection timed out.")
+
+            except Exception as e:
+                print(f"An error occurred: {e}")
             
+    return
+
+# WebSocket server handler
+async def ws_handler(request):
+    websocket = web.WebSocketResponse(heartbeat=30)
+    await websocket.prepare(request) 
     
-    while True:
-        from_id = "-1"
-        try:
-            global internal_online_users
+    await init_server_connection()
+       
+    
+    async for msg in websocket:
+        global internal_online_users
+        
+        from_user = "-1"
+        from_server = 0
+        if msg.type == aiohttp.WSMsgType.CLOSE:
 
-            message = await websocket.recv()
-            # Identify the user who sent the message
-            # By comaparing the sending websocket object against the recorded websocket object
-            # for server_address in internal_online_users:
-            for id in internal_online_users:
-                # print(internal_online_users[server_address][id]["socket"])
-                if internal_online_users[id]["socket"] == websocket:
-                    from_id = id
-                    # print(id)
-                    break
-            
-            if from_id == "-1":    
-                distant_connector = websocket.remote_address
-                distant_address = f"{distant_connector[0]}:{distant_connector[1]}"
-                for neigbour in NEIGHBOURS:
-                    if neigbour["address"] == distant_address:
-                        from_id == distant_address
-            
-            # Process the Message
-            # type: a message type as defined in the protocol document in the form f"{type}_{sub_type}"
-            # status : 
-            # sent_from: user_id
-            # log_message: recording the event
-            
-            type, status, log_message, sent_from, parsed_message = ProcessInMessage(message, from_id)
-            
-            if type == None:
-                continue
-            
-            
-            if sent_from != "-1":
-                # await websocket.close(code=4000, reason="Limited one client on a host")
-            
-                eventLogger(type, status, sent_from, log_message)
-            
-            
-            # Store the websocket object if it is not yet recorded
-            # if sent_from not in online_users and sent_from != "-1":
-            #     online_users[sent_from] = websocket
-            
-            # HANDLE HELLO
-            if type == "signed_data_hello":
-                if sent_from in internal_online_users \
-                    and internal_online_users[sent_from]["socket"] is not websocket:
-                        await websocket.close(code=4000, reason="Limited one client on a host")
-                        continue
-                
-                if sent_from not in internal_online_users and sent_from != -1:
-                    # print(websocket)
-                    internal_online_users[sent_from] = {}
-                    internal_online_users[sent_from]["socket"] = websocket
-                    internal_online_users[sent_from]["public_key"] = parsed_message["data"]["public_key"]
-                    
-                    for client_id in internal_online_users:
-                        if internal_online_users[client_id]["socket"] != websocket:
-                            
-                            all_online_users = ProcessOnlineUsersList(internal_online_users, SELF_ADDRESS, [])
-                            return_message = AssembleOutwardMessage("client_list", "", all_online_users)
-                            await internal_online_users[client_id]["socket"].send(return_message)
-                    
-                    await websocket.send("Connection established")
-
-            # HANDLE SERVER HELLO
-            elif type == "signed_data_server_hello":
-                sending_server = parsed_message["data"]["sender"]
-                # if sending_server not in ONLINE_NEIGHBOURS:
-                #     ONLINE_NEIGHBOURS.append(sending_server)
-                ONLINE_NEIGHBOURS[sending_server] = websocket
-                return_message = AssembleOutwardMessage("signed_data", "server_hello", SELF_ADDRESS)
-                
-                await websocket.send(return_message)
-                
-            # HANDLE REQUEST FOR ONLINE CLIENTS
-            elif type == "client_list_request":
-                
-                client_update_request = AssembleOutwardMessage("client_update_request", "", "")
-                external_clients = []
-                
-                # for server_address in ONLINE_NEIGHBOURS:
-                #     try:
-                #         async with websockets.connect(f'ws://{dest}') as to_server_websocket:
-                #             await to_server_websocket.send(client_update_request)
-                #             client_update_response = await to_server_websocket.recv()
-                #             type, status, log_message, sent_from, parsed_client_list = ProcessInMessage(client_update_response, "external_server")
-                #             external_clients.append(parsed_client_list["servers"])
-                            
-                        
-                #     except:
-                #         pass
-                
-                
-                all_online_users = ProcessOnlineUsersList(internal_online_users, SELF_ADDRESS, external_online_users)
-                
-                
-                return_message = AssembleOutwardMessage("client_list", "", all_online_users)
-                await websocket.send(return_message)
-            
-            # HANDLE REQUEST FOR CLIENT UPDATE FROM SERVERS
-            elif type == "client_update_request":
-                internal_clients = ProcessOnlineUsersList(internal_online_users, SELF_ADDRESS, {})
-                return_message = AssembleOutwardMessage("client_update", "", internal_clients)
-                await websocket.send(return_message)
-            
-            # HANDLE CLIENT UPDATE
-            elif type == "client_update":
-                for server_address in ONLINE_NEIGHBOURS:
-                    if ONLINE_NEIGHBOURS[server_address] == websocket:
-                        external_online_users[server_address] = parsed_message["clients"]
-                
-                pass
-                
-            # HANDLE CHAT
-            elif type == "signed_data_chat":
-                # Identify if a message is from a client or a server
-                isFromServer = True
-                for client_id in internal_online_users:
-                    socket = internal_online_users[client_id]["socket"]
-                    # When the signed_data_chat is sent from a online client of this server
-                    if socket == websocket:
-                        isFromServer == False
-                        
-                        # print(parsed_message["data"]["destination_servers"])
-                        destinations = parsed_message["data"]["destination_servers"]
-                        prev = ""
-                        for dest in destinations:
-                            if dest == prev:
-                                continue
-                            try:
-                                
-                                async with websockets.connect(f'ws://{dest}') as to_server_websocket:
-                                    await to_server_websocket.send(message)
-                                    print("hello")
-                            except:
-                                pass
-                            prev = dest
-                        
-                        break
-
-                # if isFromServer == True:
-                #     continue
-                
-                # In case the message is sent from a server
-                for client_id in internal_online_users:
-                    socket = internal_online_users[client_id]["socket"]
-                    if socket != websocket:
-                        await socket.send(message) 
-                        
-            # HANDLE PUBLIC CHAT
-            elif type == "signed_data_public_chat":
-                # Identify if a message is from a client or a server
-                isFromServer = True
-                for client_id in internal_online_users:
-                    socket = internal_online_users[client_id]["socket"]
-                    # Send message to neighbour servers when the message is from a client
-                    if socket == websocket:
-                        isFromServer == False
-                        
-                        # print(parsed_message["data"]["destination_servers"])
-                        prev = ""
-                        for dest in ONLINE_NEIGHBOURS:
-                            if dest == prev:
-                                continue
-                            try:
-                                async with websockets.connect(f'ws://{dest}') as to_server_websocket:
-                                    await to_server_websocket.send(message)
-                                    print("hello")
-                            except:
-                                pass
-                            prev = dest
-                        
-                        break
-                
-                # Send the message to all online clients connected to this master server
-                for client_id in internal_online_users:
-                    socket = internal_online_users[client_id]["socket"]
-                    if socket != websocket:
-                        await socket.send(message) 
-            
-            else:
-                await websocket.send(f'ACK: {log_message}')
-
-        except websockets.ConnectionClosedOK:
             disconnected_user = "unknown"
             for online_user in internal_online_users:
                 if (internal_online_users[online_user]["socket"] == websocket):
@@ -232,29 +87,252 @@ async def handler(websocket):
                     del internal_online_users[online_user]
                     break
             eventLogger("closeConnection", 1, disconnected_user, "")
+            await websocket.close()
             break
         
-        except websockets.ConnectionClosedError as e:
-            disconnected_user = "unknown"
-            for online_user in internal_online_users:
-                if (internal_online_users[online_user]["socket"] == websocket):
-                    disconnected_user = online_user
-                    del internal_online_users[online_user]
+        try:
+
+            message = msg.data
+
+            # Identify the user who sent the message
+            # By comaparing the sending websocket object against the recorded websocket object
+            # for server_address in internal_online_users:
+            for id in internal_online_users:
+                # print(internal_online_users[server_address][id]["socket"])
+                if internal_online_users[id]["socket"] == websocket:
+                    from_user = id
+                    # print(id)
                     break
-            eventLogger("closeConnection", 1, disconnected_user, "Connection timeout")
+            
+            if from_user == "-1":    
+                distant_ip, distant_port = request.transport.get_extra_info('peername')
+                distant_address = f"{distant_ip}:{distant_port}"
+                for neigbour in NEIGHBOURS:
+                    if neigbour["address"] == distant_address:
+                        from_server == 1
+                        break
+                    
+            
+            # Process the Message
+            # type: a message type as defined in the protocol document in the form f"{type}_{sub_type}"
+            # status : 
+            # sent_from: user_id
+            # log_message: recording the event
+            
+            type, status, log_message, sent_from, parsed_message = ProcessInMessage(message, from_user, from_server)
+            
+            if type == None:
+                continue
+            
+            
+            if sent_from != "-1" or from_server == 1:
+                # await websocket.close(code=4000, reason="Limited one client on a host")
+            
+                eventLogger(type, status, sent_from, log_message)
+            
+            # HANDLE HELLO
+            if type == "signed_data_hello" and from_server == 0 and sent_from != "-1":
+                # prevent multiconnection on a single client
+                if sent_from in internal_online_users \
+                    and internal_online_users[sent_from]["socket"] is not websocket:
+                        # await web.Response(text="Access denied.", status=403)
+                        continue
+                
+                if sent_from not in internal_online_users:
+                    internal_online_users[sent_from] = {}
+                    internal_online_users[sent_from]["socket"] = websocket
+                    internal_online_users[sent_from]["public_key"] = parsed_message["data"]["public_key"]
+                    
+                    # Process an updated list of users
+                    all_online_users = ProcessOnlineUsersList(internal_online_users, SELF_ADDRESS, external_online_users)
+                    client_list_res_message = AssembleOutwardMessage("client_list", "", all_online_users)
+                    
+                    # Send updated client list to all other clients apart from the sender
+                    for client_id in internal_online_users:
+                        if internal_online_users[client_id]["socket"] != websocket:
+                            await internal_online_users[client_id]["socket"].send_bytes(client_list_res_message)
+                    
+                    # Send updated internal client list to all online neighbour servers
+                    internal_online_users_for_sending = ProcessOnlineUsersList(internal_online_users, SELF_ADDRESS, {})
+                    client_update_res_message = AssembleOutwardMessage("client_update", "", internal_online_users_for_sending)
+                    for server_address in ONLINE_NEIGHBOURS:
+                        # client_update_message = AssembleOutwardMessage("")
+                        await ONLINE_NEIGHBOURS[server_address]["socket"].send_bytes(client_update_res_message)
+                    
+                    
+                    await websocket.send_str("Connection established")
+
+            # HANDLE SERVER HELLO
+            elif type == "signed_data_server_hello" and from_server == 1:
+                sending_server = parsed_message["data"]["sender"]
+                # if sending_server not in ONLINE_NEIGHBOURS:
+                #     ONLINE_NEIGHBOURS.append(sending_server)
+                ONLINE_NEIGHBOURS[sending_server]["socket"] = websocket
+                # return_message = AssembleOutwardMessage("signed_data", "server_hello", SELF_ADDRESS)
+                
+                # await websocket.send_bytes(return_message)
+                
+            # HANDLE REQUEST FOR ONLINE CLIENTS
+            elif type == "client_list_request" and from_server == 0 and sent_from != "-1":
+                
+                all_online_users = ProcessOnlineUsersList(internal_online_users, SELF_ADDRESS, external_online_users)
+                client_list_res_mess = AssembleOutwardMessage("client_list", "", all_online_users)
+                await websocket.send_bytes(client_list_res_mess)
+            
+            # HANDLE REQUEST FOR CLIENT UPDATE FROM SERVERS
+            elif type == "client_update_request" and from_server == 1:
+                internal_clients = ProcessOnlineUsersList(internal_online_users, SELF_ADDRESS, {})
+                client_update_res_mess = AssembleOutwardMessage("client_update", "", internal_clients)
+                await websocket.send_bytes(client_update_res_mess)
+            
+            # HANDLE CLIENT UPDATE
+            elif type == "client_update" and from_server == 1:
+                # for server_address in ONLINE_NEIGHBOURS:
+                #     if ONLINE_NEIGHBOURS[server_address]["socket"] == websocket:
+                #         external_online_users[server_address] = parsed_message["clients"]
+                distant_ip, distant_port = request.transport.get_extra_info('peername')
+                distant_address = f"{distant_ip.strip()}:{distant_port.strip()}"
+                external_online_users[distant_address] = parsed_message["clients"]
+                
+                
+                # Generate message to send to clients
+                all_online_users = ProcessOnlineUsersList(internal_online_users, SELF_ADDRESS, external_online_users)
+                client_list_res_message = AssembleOutwardMessage("client_list", "", all_online_users)    
+                
+                # Send the updated client list to all online clients connected to this server
+                for client_id in internal_online_users:
+                    if internal_online_users[client_id]["socket"] != websocket:
+                        await internal_online_users[client_id]["socket"].send_bytes(client_list_res_message)
+                
+            # HANDLE CHAT
+            elif type == "signed_data_chat" and sent_from != "-1":
+                    
+                # Send the message to all online neighbour servers
+                if from_server == 0:
+                    prev = ""
+                    for neighbour in ONLINE_NEIGHBOURS:
+                        if neighbour in parsed_message["data"]["destination_servers"] and prev != neigbour:
+                            try:
+                                await ONLINE_NEIGHBOURS[neighbour]["socket"].send_bytes(message)
+                                prev = neighbour
+                            except Exception as e:
+                                print(e)
+
+                # Send the message to all online clients
+                for client_id in internal_online_users:
+                    socket = internal_online_users[client_id]["socket"]
+                    # if socket != websocket:
+                    await socket.send_bytes(message) 
+                    
+                        
+            # HANDLE PUBLIC CHAT
+            elif type == "signed_data_public_chat" and sent_from != "-1":
+                # Send message to neighbour servers when the message is from a client    
+                if from_server == 0:
+                    for neighbour in ONLINE_NEIGHBOURS:
+                        try:
+                            await ONLINE_NEIGHBOURS[neighbour]["socket"].send_bytes(message)
+                        except Exception as e:
+                            print(e)
+                
+                # Send the message to all online clients connected to this master server
+                for client_id in internal_online_users:
+                    socket = internal_online_users[client_id]["socket"]
+                    # if socket != websocket:
+                    await socket.send_bytes(message) 
+                        
+            else:
+                await websocket.send_str(f'ACK: {log_message}')
+            
+        except Exception as e:
+            print("=======")
+            print(e)
+            print("=======")
+            
+            
+            
+    # print("WebSocket connection closed")
+    # When one client is closing the connection
+    disconnected_user = "unknown"
+    for online_user_id in internal_online_users:
+        if (internal_online_users[online_user_id]["socket"] == websocket):
+            disconnected_user = online_user_id
+            try:
+                all_online_users = ProcessOnlineUsersList(internal_online_users, SELF_ADDRESS, external_online_users)
+                client_list_res_message = AssembleOutwardMessage("client_list", "", all_online_users)
+                
+                # Send updated client list to all clients apart from the sender
+                for client_id in internal_online_users:
+                    if internal_online_users[client_id]["socket"] != websocket:
+                        await internal_online_users[client_id]["socket"].send_bytes(client_list_res_message)
+                
+                # Send updated internal client list to all online neighbour servers
+                internal_online_users_for_sending = ProcessOnlineUsersList(internal_online_users, SELF_ADDRESS, {})
+                client_update_res_message = AssembleOutwardMessage("client_update", "", internal_online_users_for_sending)
+                for server_address in ONLINE_NEIGHBOURS:
+                    # client_update_message = AssembleOutwardMessage("")
+                    await ONLINE_NEIGHBOURS[server_address]["socket"].send_bytes(client_update_res_message)
+            except Exception as e:
+                raise(f"WS exception while closing: {e}")
+                    
+            del internal_online_users[online_user_id]
             break
+    
+    eventLogger("closeConnection", 1, disconnected_user, "")
+    await websocket.close()
+    
+    return websocket
+
+async def handle_upload_file(request):
+    # filename = request.match_info['filename']
+    # segments = filename.split('/')
+    # if len(segments) != 1:
+    #     return web.Response(text="Wrong format. Try again")
+    global SELF_ADDRESS
+    try:
+        data = await request.post()
+
+
+        uploaded_file = data.get("file")
+
+        if uploaded_file == ("No data"):
+            return web.Response(text="No Data")
+
+        with open(f"./upload/{uploaded_file.filename}", "wb") as fout:
+            fout.write(uploaded_file.file.read())
+
+        response = {
+            'body': {
+                'file_url': f"http://{SELF_ADDRESS}/upload/{uploaded_file.filename}"
+            }
+        }
+
+        return web.Response(text=json.dumps(response), content_type='application/json')
+    except:
+        return web.Response(status=403)
+
+async def handle_download_file(request):
+    
+    filename = request.match_info['filename']
+    file_path = os.path.join(os.getcwd(), f'./upload/{filename}')
+
+    if not os.path.exists(file_path):
+        return web.Response(text="File not found", status=404)
+
+    return web.FileResponse(file_path)
+    
 
 
 # Start WS server
-async def main():
-    async with websockets.serve(handler, state["host_ip"], state["port"], ping_interval=60, ping_timeout=120):
-        eventLogger("serverGoOnline", 1, state["server_name"], f'at {state["ip"]}:{state["port"]}')
-        # Keep the server alive 
-        try:
-            await asyncio.Future() 
-        except asyncio.exceptions.CancelledError:
-            eventLogger("serverGoOffline", 1, state["server_name"], "")
+def main():
+    
+    app = web.Application()
+    app.router.add_get('/', ws_handler)
+    app.router.add_post('/api/upload', handle_upload_file)
+    app.router.add_get('/upload/{filename:.*}', handle_download_file)
+    
+    web.run_app(app, host="0.0.0.0", port=int(state["port"]))
 
 # Run the server
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

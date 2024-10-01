@@ -36,6 +36,8 @@ def ProcessInMessage(message, client_id, from_server: bool):
             and ValidateMessage(parsed_message["counter"], server_state["clients"][sent_from]["counter"]) == False:
             return None, 0, None, None, None
         
+        decoded_signature =  b64decode(parsed_message["signature"])
+        recv_counter = parsed_message["counter"]
         
         # Parser for chat
         if parsed_message["data"]["type"] == "chat":
@@ -57,12 +59,14 @@ def ProcessInMessage(message, client_id, from_server: bool):
         elif parsed_message["data"]["type"] == "hello":
             type += "_hello"
             data = parsed_message["data"]
+
+            
                 
             client_found_in_server = False
             for client_id in server_state["clients"]:
                 if server_state["clients"][client_id]['public_key'] == data["public_key"]:
                     # print(f"Existing client {client_id}")
-                    server_state['clients'][client_id]["counter"] = parsed_message["counter"]
+                    server_state['clients'][client_id]["counter"] = recv_counter
                     client_found_in_server = True
                     sent_from = client_id
                     # break
@@ -72,16 +76,54 @@ def ProcessInMessage(message, client_id, from_server: bool):
                     new_client_id = str(uuid.uuid4())
                     if new_client_id not in server_state["clients"]:
                         server_state["clients"][new_client_id] = {}
-                        server_state["clients"][new_client_id]["counter"] = parsed_message["counter"]
+                        server_state["clients"][new_client_id]["counter"] = recv_counter
                         server_state["clients"][new_client_id]["public_key"] = data["public_key"]
                         sent_from = new_client_id
                         break
+                    
+            # Verify signature
+            try:
+                data_json_string = json.dumps(parsed_message["data"])
+                data_json_string += str(recv_counter)
+                
+                if (rsaVerify(data_json_string, decoded_signature, data["public_key"]) != True):
+                    print("Not verified")
+                    return None, 0, None, None, None
+                print("verified")
+            except Exception as e:
+                print(f"Not verified: {e}")
+                return None, 0, None, None, None
+            
             status = 1 
             log_message = f"Connection Establised"     
         
         elif parsed_message["data"]["type"] == "server_hello" and from_server:
             type += "_server_hello"
-            #   Need signature verification
+            
+            # Verify signature
+            try:
+                data_json_string = json.dumps(parsed_message["data"])
+                data_json_string += str(recv_counter)
+                
+                    
+                send_server_pubk = ""
+                # Retrieve public key from neighbour list 
+                for neighbour in server_state["neighbours"]:
+                    if neighbour["address"] == parsed_message["data"]["sender"]:
+                        send_server_pubk = neighbour["public_key"]
+                
+                # Neighbour not found => Invalid
+                if send_server_pubk == "":
+                    return None, 0, None, None, None
+        
+                if (rsaVerify(data_json_string, decoded_signature, send_server_pubk) != True):
+                    print("Not verified")
+                    return None, 0, None, None, None
+                print("verified")
+            except Exception as e:
+                print(f"Not verified: {e}")
+                return None, 0, None, None, None
+            
             
     elif type == "client_list_request" and sent_from != "-1":
         log_message = "Received online user list request"
@@ -118,7 +160,13 @@ def AssembleOutwardMessage (msg_type, subtype, message):
         if subtype == "server_hello":
             outward_message["data"]["sender"] = message
             outward_message["counter"] = server_state["counter"]
-            #   Need signing
+            
+            #  Sign server-hello
+            data_json_string = json.dumps(outward_message["data"])
+            data_json_string += str(outward_message["counter"])
+            out_signature = rsaSign(data_json_string)
+            outward_message["signature"] = b64encode(out_signature).decode()
+            print(outward_message["signature"] )   
             
         
         if subtype == "chat" or subtype == "public_chat":
