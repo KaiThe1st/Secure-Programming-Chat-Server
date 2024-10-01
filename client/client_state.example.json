@@ -1,3 +1,12 @@
 {
+<<<<<<< Updated upstream
     "counter": 0
+=======
+    "counter": 0,
+    "fingerprint": "",
+    "online_users": [],
+    "NS": {},
+    "chat_history": {},
+    "file_urls": []
+>>>>>>> Stashed changes
 }
