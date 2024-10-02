@@ -1,6 +1,5 @@
 import json
 import uuid
-from eventLogger import eventLogger
 from base64 import b64encode, b64decode
 from rsaSigner import rsaSign, rsaVerify
 
@@ -44,13 +43,8 @@ def ProcessInMessage(message, client_id, from_server: bool):
         
         # Parser for chat
         if parsed_message['data']['type'] == "chat":
-            # print("recv")
             type += "_chat"
-            # encoded_chat = parsed_message['data']['chat']
-            # print(parsed_message)
-            # print(encoded_chat)
-            
-                
+
         # Parser for public_chat
         elif parsed_message['data']['type'] == "public_chat":
             type += "_public_chat"
@@ -210,11 +204,6 @@ def ProcessOnlineUsersList(internal_online_users, masterserver_address, external
         external_client['clients'] = external_online_users[server]
         
         client_list.append(external_client)
-        
-    print("XXXXXXXXXXXXXXXXXXX")
-    print(external_online_users)
-    # external_client['address']
-    print("XXXXXXXXXXXXXXXXXXX")
         
     return client_list
 

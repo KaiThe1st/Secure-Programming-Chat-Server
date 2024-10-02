@@ -55,13 +55,6 @@ async def server_startup(app):
         distant_address = "ws://" + NEIGHBOURS[idx]['address'] + "/"
         
         asyncio.create_task(init_server_connection(distant_address, idx))
-        # await init_server_connection(distant_address, idx)
-        
-# async def keep_alive():
-#     while True:
-#         await asyncio.sleep(10)
-#         continue
-        
 
 async def init_server_connection(distant_address, idx):
     print(NEIGHBOURS)
@@ -89,21 +82,8 @@ async def init_server_connection(distant_address, idx):
                 await asyncio.sleep(10)
                 # print("hi")
                 continue
-        # except ClientConnectorError as e:
-        # # Handle connection issues (e.g., server is down or unreachable)
-        #     print(f"Connection error: {e}")
-    
-        # except WSServerHandshakeError as e:
-        #     print(f"WebSocket handshake failed: {e}")
-        # except asyncio.TimeoutError:
-        #     print("Connection timed out.")
         except Exception as e:
             print(f"An error occurred: {e}")
-    # aync with websockets.connect("ws://10.13.91.49:8080/") as websocket:
-    #     try:
-    #         await websocket.send("Hello Server")
-    #     except Exception as e:
-    #         print(f"THe fking error is: {e}")
             
 
 
@@ -123,17 +103,6 @@ async def ws_handler(request):
         
         from_user = "-1"
         from_server = 0
-        # if msg.type == aiohttp.WSMsgType.CLOSE:
-
-        #     disconnected_user = "unknown"
-        #     for online_user in internal_online_users:
-        #         if (internal_online_users[online_user]['socket'] == websocket):
-        #             disconnected_user = online_user
-        #             del internal_online_users[online_user]
-        #             break
-        #     # eventLogger("closeConnection", 1, disconnected_user, "")
-        #     await websocket.close()
-        #     break
         
         try:
 
@@ -146,7 +115,6 @@ async def ws_handler(request):
                 # print(internal_online_users[server_address][id]['socket'])
                 if internal_online_users[id]['socket'] == websocket:
                     from_user = id
-                    # print(id)
                     break
 
 
@@ -173,13 +141,6 @@ async def ws_handler(request):
             
             if type == None:
                 continue
-            
-            
-            # print("++++++++++++++++++++++")
-            # print(from_server)
-            # print(from_user)
-            # print(message)
-            # print("++++++++++++++++++++++")
             
             if sent_from != "-1" or from_server == 1:
                 # await websocket.close(code=4000, reason="Limited one client on a host")
@@ -221,12 +182,8 @@ async def ws_handler(request):
             # HANDLE SERVER HELLO
             elif type == "signed_data_server_hello" and from_server == 1:
                 sending_server = parsed_message['data']['sender']
-                # if sending_server not in ONLINE_NEIGHBOURS:
-                #     ONLINE_NEIGHBOURS.append(sending_server)
                 ONLINE_NEIGHBOURS[sending_server]['socket'] = websocket
-                # return_message = AssembleOutwardMessage("signed_data", "server_hello", SELF_ADDRESS)
                 
-                # await websocket.send_bytes(return_message)
                 
             # HANDLE REQUEST FOR ONLINE CLIENTS
             elif type == "client_list_request" and from_server == 0 and sent_from != "-1":
@@ -244,18 +201,11 @@ async def ws_handler(request):
             
             # HANDLE CLIENT UPDATE
             elif type == "client_update": # and from_server == 1:
-                # for server_address in ONLINE_NEIGHBOURS:
-                #     if ONLINE_NEIGHBOURS[server_address]['socket'] == websocket:
-                #         external_online_users[server_address] = parsed_message['clients']
                 
                 distant_ip, distant_port = request.transport.get_extra_info('peername')
                 distant_address = f"{distant_ip.strip()}:{distant_port}"
                 external_online_users[distant_address] = parsed_message['clients']
                 
-                # print("YYYYYYYYYYYYYYYYYYYYYYYY")
-                # print(parsed_message)
-                # print("YYYYYYYYYYYYYYYYYYYYYYYY")
-            
             
                 # Generate message to send to clients
                 all_online_users = ProcessOnlineUsersList(internal_online_users, SELF_ADDRESS, external_online_users)
@@ -352,10 +302,6 @@ async def ws_handler(request):
     return websocket
 
 async def handle_upload_file(request):
-    # filename = request.match_info['filename']
-    # segments = filename.split('/')
-    # if len(segments) != 1:
-    #     return web.Response(text="Wrong format. Try again")
     global SELF_ADDRESS
     try:
         data = await request.post()
@@ -389,7 +335,6 @@ async def handle_download_file(request):
 
     return web.FileResponse(file_path)
     
-
 
 # Start WS server
 def main():

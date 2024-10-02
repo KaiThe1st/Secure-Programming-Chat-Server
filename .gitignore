@@ -20,5 +20,6 @@
 /server/server2.py
 /server/__pycache__/*
 /server/public_key.pem
+/server/private_key.pem
 
-
+/local/*
