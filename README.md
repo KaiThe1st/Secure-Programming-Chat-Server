@@ -1,9 +1,9 @@
 # GROUP 40 CHAT APP
 
-Nathan Dang <br>
-Haydn Gaetdke <br>
-Quoc Khanh Duong <br>
-Dang Hoan Nguyen <br>s
+Nathan Dang (email) <br>
+Haydn Gaetdke (email) <br>
+Quoc Khanh Duong (email) <br>
+Dang Hoan Nguyen (email) <br>
 
 # Dependencies
 
