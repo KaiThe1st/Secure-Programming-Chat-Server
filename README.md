@@ -9,7 +9,7 @@ Dang Hoan Nguyen (a1830595@adelaide.edu.au) <br>
 The dependencies are located within the requirement.txt file
 
 # How to run the chat app
-IMPORATNT: please use powershell terminal because it needs to use the computer ports
+IMPORTANT: please use powershell terminal because it needs to use the computer ports
 1. Download relevant libraries within requirement.txt 
 pip install -r requirements.txt
 2. Open a powershell terminal and navigate to server folder
