@@ -6,7 +6,7 @@ Quoc Khanh Duong (a1872857@adelaide.edu.au) <br>
 Dang Hoan Nguyen (a1830595@adelaide.edu.au) <br>
 
 # Dependencies
-located within the requirement.txt file
+The dependencies are located within the requirement.txt file
 
 # How to run the chat app
 IMPORATNT: please use powershell terminal because it needs to use the computer ports
