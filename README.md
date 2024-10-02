@@ -1,4 +1,3 @@
-# Key generation
 # GROUP 40 CHAT APP
 Nathan Dang
 Haydn Gaetdke
