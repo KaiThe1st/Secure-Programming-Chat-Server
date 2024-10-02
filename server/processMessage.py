@@ -32,7 +32,10 @@ def ProcessInMessage(message, client_id, from_server: bool):
         if sent_from == "-1" and not from_server and parsed_message["data"]["type"] != "hello":
             return None, 0, None,None, None
         
-        if sent_from != "-1" and not from_server \
+        # if not from_server and parsed_message["data"]["type"] != "server_hello":
+        #     return None, 0, None,None, None
+        
+        if sent_from != "-1" and not from_server\
             and ValidateMessage(parsed_message["counter"], server_state["clients"][sent_from]["counter"]) == False:
             return None, 0, None, None, None
         
@@ -97,7 +100,7 @@ def ProcessInMessage(message, client_id, from_server: bool):
             status = 1 
             log_message = f"Connection Establised"     
         
-        elif parsed_message["data"]["type"] == "server_hello" and from_server:
+        elif parsed_message["data"]["type"] == "server_hello": # and from_server:
             type += "_server_hello"
             
             # Verify signature
@@ -128,12 +131,12 @@ def ProcessInMessage(message, client_id, from_server: bool):
     elif type == "client_list_request" and sent_from != "-1":
         log_message = "Received online user list request"
         # print(parsed_message["type"])
-    elif type == "client_update_request" and from_server:
+    elif type == "client_update_request":# and from_server:
         log_message = "Received online user list update request"
-        pass
-    elif type == "client_update" and from_server:
+        # pass
+    elif type == "client_update":# and from_server:
         log_message = "Received online user list update"
-        pass
+        # pass
     else:
         print(f"Message has invalid type {parsed_message["type"]}")
     
@@ -180,7 +183,7 @@ def AssembleOutwardMessage (msg_type, subtype, message):
         pass
     
     elif msg_type == "client_update":
-        outward_message["clients"] = message
+        outward_message["clients"] = message[0]["clients"]
     
     with open("./state.json", 'w') as server_state_write:
         json.dump(server_state, server_state_write, indent=4) 
@@ -207,6 +210,11 @@ def ProcessOnlineUsersList(internal_online_users, masterserver_address, external
         external_client["clients"] = external_online_users[server]
         
         client_list.append(external_client)
+        
+    print("XXXXXXXXXXXXXXXXXXX")
+    print(external_online_users)
+    # external_client["address"]
+    print("XXXXXXXXXXXXXXXXXXX")
         
     return client_list
 

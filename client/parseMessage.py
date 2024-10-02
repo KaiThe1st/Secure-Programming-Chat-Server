@@ -125,6 +125,9 @@ def ParseOutMessage (message, msg_type, subtype, receiver, online_users):
     return parsedJsonMessage
 
 def ParseInMessage (message):
+    print("--------------")
+    print(message)
+    print('-----------------')
     parsed_message = message.decode('utf-8')
     parsed_message = json.loads(parsed_message)
 
@@ -206,8 +209,14 @@ def ParseInMessage (message):
         
         # added from Khanh
         #--
+        print("++++++++++")
+        print(client_state)
+        print("++++++++++")
+        
         for client in client_state["online_users"]:
             for pub_k in client["clients"]:
+                
+                print(pub_k)
                 fp = hashlib.sha256(pub_k.encode()).hexdigest()
                 if fp not in client_state["NS"]:
                     client_state["NS"][fp] ={}

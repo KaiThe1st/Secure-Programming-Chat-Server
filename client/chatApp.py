@@ -389,7 +389,7 @@ class G40chatApp(QMainWindow):
             chat_list = selected_chat.split(",")
             self.current_chat = []
             for i in range(len(chat_list)):
-                self.current_chat.append(chat_list[i].split())
+                self.current_chat.append(chat_list[i].strip())
                 
         with open("./client_state.json", "r") as client_state:
             client_state_data = json.load(client_state)
