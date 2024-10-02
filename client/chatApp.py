@@ -569,9 +569,12 @@ with open("client_state.json", "w") as file:
 
 if (not(os.path.isfile("server_info.json"))):
     with open("server_info.example.json", "r") as file:
-        client_state = json.load(file)
+        server_info = json.load(file)
+        server_info["master_server_counter"] = 0
+        server_info["master_server_port"] = 8080
+        server_info["master_server_ip"] = "localhost"
     with open("server_info.json", "w") as file:
-        json.dump(client_state, file, indent=4)
+        json.dump(server_info, file, indent=4)
         
 with open("./server_info.json", 'r') as server_info:
     data = json.load(server_info)

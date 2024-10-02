@@ -9,6 +9,7 @@ import os
 import logging
 import socket
 from rsaKeyGenerator import generate_key_pair
+from rsaKeyGenerator import generate_key_pair
 
 # logging.basicConfig(level=logging.DEBUG)
 
@@ -27,9 +28,10 @@ if (not(os.path.isfile("private_key.pem") and os.path.isfile("public_key.pem")))
 if (not(os.path.isfile("state.json"))):
     with open('state.example.json', 'r') as f:
         server_state = json.load(f)
-        server_state['neighbours'] = []
+        server_state["neighbours"] = []
     with open('state.json', 'w') as f:
         json.dump(server_state, f, indent=4)
+
 
 with open("./state.json", 'r') as server_state:
     state = json.load(server_state)
@@ -223,6 +225,7 @@ async def ws_handler(request):
                     
                 # Send the message to all online neighbour servers
                 if from_server == 0:
+                    # prev = ""
                     # prev = ""
                     for neighbour in ONLINE_NEIGHBOURS:
                         # print(neigbour)
