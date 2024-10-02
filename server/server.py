@@ -6,10 +6,8 @@ from processMessage import AssembleOutwardMessage
 from eventLogger import eventLogger
 import json
 import os
-import logging
+# import logging
 import socket
-from rsaKeyGenerator import generate_key_pair
-from rsaKeyGenerator import generate_key_pair
 
 # logging.basicConfig(level=logging.DEBUG)
 
@@ -23,14 +21,9 @@ internal_online_users = {
 IP = socket.gethostbyname(socket.gethostname())
 
 if (not(os.path.isfile("private_key.pem") and os.path.isfile("public_key.pem"))):
-    generate_key_pair()
-    
+    raise ValueError("Key not found. Please run createFile.py")
 if (not(os.path.isfile("state.json"))):
-    with open('state.example.json', 'r') as f:
-        server_state = json.load(f)
-        server_state["neighbours"] = []
-    with open('state.json', 'w') as f:
-        json.dump(server_state, f, indent=4)
+    raise ValueError("State file not found. Please run createFile.py and populate neighbour informations")
 
 
 with open("./state.json", 'r') as server_state:
