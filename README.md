@@ -14,12 +14,16 @@ The dependencies are located within the requirement.txt file
 ```
 pip install -r requirements.txt
 ```
-2.Server
+2. Server
 - Open a powershell terminal and navigate to server folder
 ```
 cd server
 ```
-- Run server.py
+- Run createFiles.py to create necessary files
+```
+python createFiles.py
+```
+- Run server.py (The server will only run if the necessary files are there)
 ```
 python server.py
 ```
@@ -32,8 +36,7 @@ python rsaKeyGenerator.py
 ```
 cd client
 ```
-- Update the server_info.json file in the client to the relevant ip of server according to the server_info.example.json
-- Run chatApp.py
+- Run chatApp.py (You should see the public-private key pair being generated as well as the client_state.json and server_info.json). By default, the server_info.json will be localhost:8080
 ```
 python chatApp.py
 ```
@@ -54,7 +57,12 @@ The message will appear on everybody's screen with the public chat attribute att
 - Choose the group to start chatting <br>
 - Enter text into the text field at the bottom. <br>
 - Press send button to send. The message will appear on your screen and be sent to the other people in the group. <br>
-
+# How to test inter-server chat
+- Modify the state["neighbours"] according to the state.example.json. <br>
+- Modify the server_info.json if needed to connect to the right server. <br>
+- Run two servers (on two different computers). <br>
+- If the servers are successfully connected, take turn open the chat app on each client (with the server_info.json correctly configured). <br>
+- If everything works, you can start sending messages by following the instructions above. <br>
 # How to upload and download files
 1. Upload a file
 - Click "Upload File" at the bottom-right corner of the screen. <br>
