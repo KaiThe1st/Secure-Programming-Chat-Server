@@ -1,4 +1,5 @@
 # GROUP 40 CHAT APP
+
 Nathan Dang
 Haydn Gaetdke
 Quoc Khanh Duong
@@ -9,7 +10,7 @@ Dang Hoan Nguyen
 The dependencies required to run the chat app are located within the requirement.txt file
 
 # How to run
-!!!IMPORTANT: please use powershell terminal because it needs to use the computer ports
+!!! IMPORTANT: please use powershell terminal because it needs to use the computer ports
 1. Download relevant libraries within requirement.txt 
 ```
 pip install -r requirements.txt
