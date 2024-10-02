@@ -1,9 +1,9 @@
 
 # GROUP 40 CHAT APP
-Nathan Dang (a1794954@adelaide.edu.au)
-Haydn Gaetdke (a1860571@adelaide.edu.au)
-Quoc Khanh Duong (a1872857@adelaide.edu.au)
-Dang Hoan Nguyen ()
+Nathan Dang (a1794954@adelaide.edu.au) <br>
+Haydn Gaetdke (a1860571@adelaide.edu.au) <br>
+Quoc Khanh Duong (a1872857@adelaide.edu.au) <br>
+Dang Hoan Nguyen (a1830595@adelaide.edu.au) <br>
 
 # Dependencies
 located within the requirement.txt file
