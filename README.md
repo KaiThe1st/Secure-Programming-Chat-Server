@@ -1,9 +1,9 @@
 # GROUP 40 CHAT APP
 
-Nathan Dang
-Haydn Gaetdke
-Quoc Khanh Duong
-Dang Hoan Nguyen
+Nathan Dang <br>
+Haydn Gaetdke <br>
+Quoc Khanh Duong <br>
+Dang Hoan Nguyen <br>s
 
 # Dependencies
 
