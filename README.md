@@ -6,10 +6,10 @@ Dang Hoan Nguyen
 
 # Dependencies
 
-The dependencies required to run the chatApp are located within the requirement.txt file
+The dependencies required to run the chat app are located within the requirement.txt file
 
 # How to run
-IMPORATNT: please use powershell terminal because it needs to use the computer ports
+!!!IMPORTANT: please use powershell terminal because it needs to use the computer ports
 1. Download relevant libraries within requirement.txt 
 ```
 pip install -r requirements.txt
