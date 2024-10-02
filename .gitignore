@@ -3,6 +3,7 @@
 /client/client_state.json
 /client/server_info.json
 /client/app.py
+/client/local/
 
 /client/download/*
 
@@ -22,5 +23,6 @@
 /server/__pycache__/
 /server/public_key.pem
 /server/private_key.pem
+/server/local/
 
 /local/*
