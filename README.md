@@ -12,17 +12,29 @@ The dependencies are located within the requirement.txt file
 !!! IMPORTANT: please use powershell terminal because it needs to use the computer ports
 1. Download relevant libraries within requirement.txt 
 pip install -r requirements.txt
-2. Open a powershell terminal and navigate to server folder
+2.Sever
+- Open a powershell terminal and navigate to server folder
+```
 cd server
-3. Run server.py 
+```
+- Run server.py
+```
 python server.py
-4. After running server.py, if the public-private key pair is not created automatically, please run rsaKeyGenerator.py within server file
+```
+- After running server.py, if the public-private key pair is not created automatically, please run rsaKeyGenerator.py within server file
+```
 python rsaKeyGenerator.py
-5. Open another powershell terminal and navigate into the client folder
+```
+3. Client
+- Open another powershell terminal and navigate into the client folder
+```
 cd client
-6. update the server_info.json file in the client to the relevant ip of server according to the server_info.example.json
-8. run chatApp.py 
+```
+- Update the server_info.json file in the client to the relevant ip of server according to the server_info.example.json
+- Run chatApp.py
+```
 python chatApp.py
+```
 # How to chat 
 1. Public chat
 - Click to choose public chat on the left side menu. <br>
