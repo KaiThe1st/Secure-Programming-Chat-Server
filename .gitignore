@@ -16,10 +16,10 @@
 /server/upload/*
 /client/download/*
 
-/client/__pycache__/*
+/client/__pycache__/
 
 /server/server2.py
-/server/__pycache__/*
+/server/__pycache__/
 /server/public_key.pem
 /server/private_key.pem
 
