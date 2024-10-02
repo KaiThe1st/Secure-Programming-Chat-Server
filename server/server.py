@@ -8,6 +8,7 @@ import json
 import os
 import logging
 import socket
+from rsaKeyGenerator import generate_key_pair
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -19,6 +20,17 @@ internal_online_users = {
 }
 
 IP = socket.gethostbyname(socket.gethostname())
+
+if (not(os.path.isfile("private_key.pem") and os.path.isfile("public_key.pem"))):
+    generate_key_pair()
+    
+if (not(os.path.isfile("state.json"))):
+    with open('state.example.json', 'r') as f:
+        server_state = json.load(f)
+        server_state["neighbours"] = []
+    with open('state.json', 'w') as f:
+        json.dump(server_state, f, indent=4)
+
 
 with open("./state.json", 'r') as server_state:
     state = json.load(server_state)
@@ -262,14 +274,15 @@ async def ws_handler(request):
                     
                 # Send the message to all online neighbour servers
                 if from_server == 0:
-                    prev = ""
+                    # prev = ""
                     for neighbour in ONLINE_NEIGHBOURS:
-                        if neighbour in parsed_message["data"]["destination_servers"] and prev != neigbour:
-                            try:
-                                await ONLINE_NEIGHBOURS[neighbour]["socket"].send(message)
-                                prev = neighbour
-                            except Exception as e:
-                                print(e)
+                        # print(neigbour)
+                        # if neighbour in parsed_message["data"]["destination_servers"] and prev != neigbour:
+                        try:
+                            await ONLINE_NEIGHBOURS[neighbour]["socket"].send(message)
+                            # prev = neighbour
+                        except Exception as e:
+                            print(e)
 
                 # Send the message to all online clients
                 for client_id in internal_online_users:

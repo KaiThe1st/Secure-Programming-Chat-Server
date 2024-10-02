@@ -3,15 +3,19 @@
 /client/client_state.json
 /client/server_info.json
 
-/server/state.json
-/client/appwui1.py
-/client/localtestfile.py
-/client/template.json
-
-/server/testserver.py
-/server/upload.html
-
-/server/upload/*
 /client/download/*
 
-/py_cache/
+/server/testserver.py
+/server/server2.py
+/server/server3.py
+
+/server/private_key.pem
+/server/public_key.pem
+/server/state.json
+/server/upload/*
+
+
+/client/__pycache__/*
+/server/__pycache__/*
+
+
