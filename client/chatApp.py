@@ -23,8 +23,8 @@ PARTICIPANTS = []
 
 # with open("./server_info.json", 'r') as server_info:
 #         data = json.load(server_info)
-#         ip = data["master_server_ip"]
-#         port = data["master_server_port"]
+#         ip = data['master_server_ip']
+#         port = data['master_server_port']
 
 # SERVER_ADDRESS = f'{ip}:{port}'
 
@@ -61,11 +61,11 @@ class UploadDialog(QDialog):
             response = requests.post(api_url, files=files)
             if response.status_code == 200:
                 response_json = json.loads(response.text)
-                file_url = response_json["body"]["file_url"]
+                file_url = response_json['body']['file_url']
                 with open("./client_state.json", "r") as fin:
                     client_state = json.load(fin)
-                if file_url not in client_state["file_urls"]:
-                    client_state["file_urls"].append(file_url)
+                if file_url not in client_state['file_urls']:
+                    client_state['file_urls'].append(file_url)
                 with open("./client_state.json", "w") as fout:
                     json.dump(client_state, fout, indent=4)
                 self.status_label.setText("File uploaded successfully!")
@@ -90,7 +90,7 @@ class DownloadDialog(QDialog):
         layout = QVBoxLayout(self)
         self.filelist = QListWidget(self)
         with open("./client_state.json", "r") as fin:
-            files = (json.load(fin))["file_urls"]
+            files = (json.load(fin))['file_urls']
             
         for file in files:
             self.filelist.addItem(file)
@@ -144,12 +144,12 @@ class PrivateChatDialog(QtWidgets.QDialog):
         # Check if online_users is structured as expected
         with open('client_state.json', 'r') as file:
             chat_data = json.load(file)
-            people = chat_data["NS"]
+            people = chat_data['NS']
             for person_id, person_data in people.items():
-                if person_id != chat_data["fingerprint"]:
-                    self.user_list.addItem(person_data["name"])
+                if person_id != chat_data['fingerprint']:
+                    self.user_list.addItem(person_data['name'])
             # for entry in people:
-            #     self.user_list.addItem(entry["name"])
+            #     self.user_list.addItem(entry['name'])
 
         self.user_list.setSelectionMode(QtWidgets.QAbstractItemView.MultiSelection)  # Allow multiple selections
         layout.addWidget(self.user_list)
@@ -192,8 +192,8 @@ class G40chatApp(QMainWindow):
         # with open("./client_state.json", "r") as client_state:
         #     state_data = json.load(client_state)
         
-        # for signature in state_data["NS"]:
-        #     self.side_menu.addItem(state_data["NS"][signature]["name"])
+        # for signature in state_data['NS']:
+        #     self.side_menu.addItem(state_data['NS'][signature]['name'])
             
         self.side_menu.itemClicked.connect(self.change_chat)
         
@@ -280,32 +280,32 @@ class G40chatApp(QMainWindow):
         
     def populate_client_list(self, client_list):
         online = []
-        assert client_list["type"] == "client_list"
-        assert len(client_list["servers"]) > 0
-        for server in client_list["servers"]:
-            for client in server["clients"]:
+        assert client_list['type'] == "client_list"
+        assert len(client_list['servers']) > 0
+        for server in client_list['servers']:
+            for client in server['clients']:
                 online.append(client)
                 
         with open("client_state.json","r") as client_state_json:
                 client_state = json.load(client_state_json)
-                for fp in client_state["NS"]:
-                    if client_state["NS"][fp]["public_key"] in online:
-                        name = client_state["NS"][fp]["name"]
+                for fp in client_state['NS']:
+                    if client_state['NS'][fp]['public_key'] in online:
+                        name = client_state['NS'][fp]['name']
                         self.side_menu.addItem(name)
         print("Client list populated:", client_list)
         
     def update_client_list(self, updated_client_list, curr_client_list):
         new_list = []
         curr_list = []
-        assert updated_client_list["type"] == "client_list"
-        assert curr_client_list["type"] == "client_list"
-        assert len(updated_client_list["servers"]) > 0
-        assert len(curr_client_list["servers"]) > 0
-        for server in updated_client_list["servers"]:
-            for client in server["clients"]:
+        assert updated_client_list['type'] == "client_list"
+        assert curr_client_list['type'] == "client_list"
+        assert len(updated_client_list['servers']) > 0
+        assert len(curr_client_list['servers']) > 0
+        for server in updated_client_list['servers']:
+            for client in server['clients']:
                 new_list.append(client)
-        for server in curr_client_list["servers"]:
-            for client in server["clients"]:
+        for server in curr_client_list['servers']:
+            for client in server['clients']:
                 curr_list.append(client)
                 
         new_users = set(new_list) - set(curr_list)
@@ -313,14 +313,14 @@ class G40chatApp(QMainWindow):
         print(removed_users)
         with open("client_state.json","r") as client_state_json:
                 client_state = json.load(client_state_json)
-                for fp in client_state["NS"]:
-                    if client_state["NS"][fp]["public_key"] in new_users:
-                        name = client_state["NS"][fp]["name"]
+                for fp in client_state['NS']:
+                    if client_state['NS'][fp]['public_key'] in new_users:
+                        name = client_state['NS'][fp]['name']
                         self.side_menu.addItem(name)
 
         # Remove users who left the chat
-                    if client_state["NS"][fp]["public_key"] in removed_users:
-                        name = client_state["NS"][fp]["name"]
+                    if client_state['NS'][fp]['public_key'] in removed_users:
+                        name = client_state['NS'][fp]['name']
             # Find and remove the corresponding item
                         items = self.side_menu.findItems(name, QtCore.Qt.MatchExactly)
                         if items:
@@ -395,8 +395,8 @@ class G40chatApp(QMainWindow):
             client_state_data = json.load(client_state)
             
         PARTICIPANTS = []
-        for fp in client_state_data["NS"]:
-            if client_state_data["NS"][fp]["name"] in self.current_chat:
+        for fp in client_state_data['NS']:
+            if client_state_data['NS'][fp]['name'] in self.current_chat:
                 PARTICIPANTS.append(fp)
         
         
@@ -521,16 +521,16 @@ class WebsocketConnection(QtCore.QThread):
         if CURRENT_MODE == "chat" and len(PARTICIPANTS) != 0:
             participant_names_list = []
             for fp in PARTICIPANTS[1:]:
-                if fp in client_state_data["NS"]:
-                    participant_names_list.append(client_state_data["NS"][fp]["name"])
+                if fp in client_state_data['NS']:
+                    participant_names_list.append(client_state_data['NS'][fp]['name'])
             participant_names_list = list(set(participant_names_list))
             if len(participant_names_list) == 0:
-                participant_names_list = ["Yourself"]
+                participant_names_list = ['Yourself']
             attribution_text = "&gt;&gt; <span style='color:green'>[TO]</span> " + ", ".join(participant_names_list)
         elif CURRENT_MODE == "public_chat":
             attribution_text = "&gt;&gt; <span style='color:red'>[PUBLIC CHAT]</span> <span style='color:green'>[TO]</span> ALL"
 
-        my_color = client_state_data["NS"][client_state_data["fingerprint"]]["color"]
+        my_color = client_state_data['NS'][client_state_data['fingerprint']]['color']
 
         displye_msg = f"""
             <div style='width:100%; margin: 5px;'>
@@ -560,10 +560,10 @@ if (not(os.path.isfile("client_state.json"))):
 
 with open("client_state.json", "r") as file:
     client_state = json.load(file)
-    if (client_state["fingerprint"] == ""):
+    if (client_state['fingerprint'] == ""):
         with open("public_key.pem", "r") as pub_f:
             pub_k = pub_f.read()
-            client_state["fingerprint"] = hashlib.sha256(pub_k.encode()).hexdigest()
+            client_state['fingerprint'] = hashlib.sha256(pub_k.encode()).hexdigest()
 with open("client_state.json", "w") as file:
     json.dump(client_state, file, indent=4)
 
@@ -575,8 +575,8 @@ if (not(os.path.isfile("server_info.json"))):
         
 with open("./server_info.json", 'r') as server_info:
     data = json.load(server_info)
-    ip = data["master_server_ip"]
-    port = data["master_server_port"]
+    ip = data['master_server_ip']
+    port = data['master_server_port']
 
 SERVER_ADDRESS = f'{ip}:{port}'
 

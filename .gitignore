@@ -2,6 +2,7 @@
 /client/public_key.pem
 /client/client_state.json
 /client/server_info.json
+/client/app.py
 
 /server/state.json
 /client/appwui1.py
@@ -14,4 +15,10 @@
 /server/upload/*
 /client/download/*
 
-/py_cache/
+/client/__pycache__/*
+
+/server/server2.py
+/server/__pycache__/*
+/server/public_key.pem
+
+

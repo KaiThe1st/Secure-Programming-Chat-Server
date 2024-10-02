@@ -17,16 +17,16 @@ PEM_FOOTER_PUBK = "-----END PUBLIC KEY-----"
 def encryptMessage(plaintext, participants, pub_keys):
     
     chat = {}
-    chat["participants"] = []
-    chat["message"] = plaintext
+    chat['participants'] = []
+    chat['message'] = plaintext
     
     for participant in participants:
         # fingerprint = hashlib.sha256(participant.encode('utf-8')).digest()
         # print(f'{fingerprint}\n\n')
         # fingerprint = hashlib.sha256(participant.encode('utf-8')).hexdigest()
-        chat["participants"].append(b64encode(participant.encode()).decode('utf-8'))
-        # print(f'Fingerprint: {chat["participants"]}\n\n')
-        # print(f'Unhash: {[b64decode(user).decode() for user in chat["participants"]]}\n\n')
+        chat['participants'].append(b64encode(participant.encode()).decode('utf-8'))
+        # print(f'Fingerprint: {chat['participants']}\n\n')
+        # print(f'Unhash: {[b64decode(user).decode() for user in chat['participants']]}\n\n')
 
     
     chat = json.dumps(chat).encode('utf-8')
@@ -77,14 +77,14 @@ def decryptMessage(ciphertext, iv, enc_sym_keys):
         cipher = AES.new(decrypted_sym_key, AES.MODE_GCM, iv)
         chat = cipher.decrypt_and_verify(ciphertext,auth_tag)
         chat = json.loads(chat.decode('utf-8'))
-        # chat["participants"] = [b64decode(user.encode('utf8')).decode() for user in chat["participants"]]
-        for i in range(len(chat["participants"])):
-            decoded = b64decode(chat["participants"][i].encode('utf8'))
+        # chat['participants'] = [b64decode(user.encode('utf8')).decode() for user in chat['participants']]
+        for i in range(len(chat['participants'])):
+            decoded = b64decode(chat['participants'][i].encode('utf8'))
             try: 
                 hex = decoded.decode('utf8')
-                chat["participants"][i] = hex_to_bin(hex)
+                chat['participants'][i] = hex_to_bin(hex)
             except UnicodeDecodeError:
-                chat["participants"][i] = hex_to_bin(decoded)
+                chat['participants'][i] = hex_to_bin(decoded)
     except:
         return False
     return chat
@@ -106,18 +106,18 @@ if __name__ == "__main__":
     
     with open("client_state.json","r") as client_state_json:
         client_state = json.load(client_state_json)
-        all_users = client_state["online_users"]
+        all_users = client_state['online_users']
     for user in all_users:
-        server = user["address"]
+        server = user['address']
         print(f"Address {server}:")
-        for client in user["clients"]:
+        for client in user['clients']:
             print(f"    {client}")
     
     with open("client_state.json","r") as client_state_json:
         client_state = json.load(client_state_json)
-        all_users = client_state["online_users"]
+        all_users = client_state['online_users']
     for user in all_users:
-        server = user["address"]
+        server = user['address']
         print(f"Address {server}:")
-        for client in user["clients"]:
+        for client in user['clients']:
             print(f"    {client}")
