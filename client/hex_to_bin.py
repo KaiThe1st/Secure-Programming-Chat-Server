@@ -1,3 +1,9 @@
+# Code by Group UG40:
+# Nathan Dang (a1794954@adelaide.edu.au)
+# Haydn Gaetdke (a1860571@adelaide.edu.au)
+# Quoc Khanh Duong (a1872857@adelaide.edu.au)
+# Dang Hoan Nguyen (a1830595@adelaide.edu.au)
+
 import hashlib
 from base64 import b64encode, b64decode
 from binascii import hexlify, unhexlify
