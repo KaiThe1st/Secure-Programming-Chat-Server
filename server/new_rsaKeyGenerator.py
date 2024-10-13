@@ -1,6 +1,7 @@
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
 
+# added by Khanh - 13/10/2024
 
 def generate_key_pair():
     # Generate a 2048-bit RSA key pair

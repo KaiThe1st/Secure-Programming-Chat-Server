@@ -254,7 +254,7 @@ async def ws_handler(request):
                 for client_id in internal_online_users:
                     socket = internal_online_users[client_id]['socket']
                     if socket != websocket:
-                        # Escape html tags and scripts
+                        # Escape html tags and scripts (added by Khanh - 13/10/2024)
                         
                         # escaped_message = html.escape(message['data']['message'])
                         # message['data']['message'] = escaped_message
@@ -311,6 +311,8 @@ async def handle_upload_file(request):
         
     try:
         data = await request.post()
+
+        # added by Khanh - 13/10/2024
 
         # Checking file size
         uploaded_file = data.get("file")

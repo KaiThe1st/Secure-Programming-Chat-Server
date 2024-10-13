@@ -8,6 +8,8 @@ from base64 import b64encode, b64decode
 import json
 from hex_to_bin import hex_to_bin
 
+# added by Khanh - 13/10/2024
+
 IV_LENGTH = 16
 KEY_LENGTH = 16
 

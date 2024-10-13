@@ -3,6 +3,7 @@ from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 
+# added by Khanh - 13/10/2024
 
 PEM_HEADER_PUBK = "-----BEGIN PUBLIC KEY-----"
 PEM_FOOTER_PUBK = "-----END PUBLIC KEY-----"

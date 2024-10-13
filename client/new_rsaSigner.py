@@ -3,6 +3,7 @@ from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 
+# added by Khanh - 13/10/2024
 
 PEM_HEADER_PUBK = "-----BEGIN PUBLIC KEY-----"
 PEM_FOOTER_PUBK = "-----END PUBLIC KEY-----"
@@ -39,16 +40,33 @@ def rsaSign(message) -> bytes:
 
 
 def rsaVerify(message, signature, pub_key) -> bool:
-    if (pub_key.find(PEM_FOOTER_PUBK) == -1 or pub_key.find(PEM_HEADER_PUBK) == -1):
-        pub_key = pub_key.replace(PEM_FOOTER_PUBK,"").replace(PEM_HEADER_PUBK,"").strip()
-        pub_key = PEM_HEADER_PUBK + '\n' + pub_key + '\n' + PEM_FOOTER_PUBK
+    
+    if isinstance(message, bytes):
+        pass
+    elif isinstance(pub_key, str):
+        message = message.encode()
+    else: 
+        return False
+    
+    if isinstance(signature, bytes):
+        pass
+    elif isinstance(signature, str):
+        signature = signature.encode()
+    else: 
+        return False 
     
     if isinstance(pub_key, bytes):
-            public_key = serialization.load_pem_public_key(pub_key)
+        if (pub_key.find(PEM_FOOTER_PUBK.encode()) == -1 or pub_key.find(PEM_HEADER_PUBK.encode()) == -1):
+            pub_key = pub_key.replace(PEM_FOOTER_PUBK.encode(),"").replace(PEM_HEADER_PUBK.encode(),"").strip()
+            pub_key = PEM_HEADER_PUBK.encode() + '\n' + pub_key + '\n' + PEM_FOOTER_PUBK.encode()
+        public_key = serialization.load_pem_public_key(pub_key)
     elif isinstance(pub_key, str):
-            public_key = serialization.load_pem_public_key(pub_key.encode())
+        if (pub_key.find(PEM_FOOTER_PUBK) == -1 or pub_key.find(PEM_HEADER_PUBK) == -1):
+            pub_key = pub_key.replace(PEM_FOOTER_PUBK,"").replace(PEM_HEADER_PUBK,"").strip()
+            pub_key = PEM_HEADER_PUBK + '\n' + pub_key + '\n' + PEM_FOOTER_PUBK
+        public_key = serialization.load_pem_public_key(pub_key.encode())
     else: 
-        return False  
+        return False   
             
     assert isinstance(public_key, rsa.RSAPublicKey) == True 
     
