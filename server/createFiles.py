@@ -1,4 +1,4 @@
-from rsaKeyGenerator import generate_key_pair
+from new_rsaKeyGenerator import generate_key_pair
 import os
 import json
 

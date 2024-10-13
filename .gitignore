@@ -4,6 +4,7 @@
 /client/server_info.json
 /client/app.py
 /client/local/
+/client/private_key_pem_pass.txt
 
 /client/download/*
 
@@ -24,5 +25,6 @@
 /server/public_key.pem
 /server/private_key.pem
 /server/local/
+/server/private_key_pem_pass.txt
 
 /local/*

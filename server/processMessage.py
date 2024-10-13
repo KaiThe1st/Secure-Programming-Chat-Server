@@ -199,7 +199,7 @@
 import json
 import uuid
 from base64 import b64encode, b64decode
-from rsaSigner import rsaSign, rsaVerify
+from new_rsaSigner import rsaSign, rsaVerify
 
 
 def ValidateMessage(recv_counter, cached_counter):
