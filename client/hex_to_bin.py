@@ -26,7 +26,7 @@ def hex_to_bin(data):
 #for testing
 if __name__  == '__main__':
     chat = {}
-    chat["participants"] = []
+    chat['participants'] = []
     hex = b64encode(hashlib.sha256("hello".encode("utf-8")).hexdigest().encode()).decode()
     # print(hashlib.sha256("hello".encode("utf-8")).hexdigest())
     bin = b64encode(hashlib.sha256("hello".encode()).digest()).decode()
@@ -41,19 +41,19 @@ if __name__  == '__main__':
     # print(decoded_hex)
     # print(hex_to_bin(decoded_hex))
     # print(hex_to_bin(decoded_bin))
-    chat["participants"].append(hex)
-    chat["participants"].append(bin)
+    chat['participants'].append(hex)
+    chat['participants'].append(bin)
     
-    for i in range(len(chat["participants"])):
-        decoded = b64decode(chat["participants"][i].encode('utf8'))
+    for i in range(len(chat['participants'])):
+        decoded = b64decode(chat['participants'][i].encode('utf8'))
         print(decoded)
         try: 
             hex = decoded.decode('utf8')
             print(hex)
-            chat["participants"][i] = hex_to_bin(hex)
+            chat['participants'][i] = hex_to_bin(hex)
             print("Decode hex")
         except UnicodeDecodeError:
-            chat["participants"][i] = hex_to_bin(decoded)
+            chat['participants'][i] = hex_to_bin(decoded)
             print("Decode binary")
             
-    print(chat["participants"])
+    print(chat['participants'])
