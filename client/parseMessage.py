@@ -1,9 +1,10 @@
 import json
 import hashlib
 from base64 import b64encode, b64decode
-from messageEncoder import encryptMessage, decryptMessage
-from rsaSigner import rsaSign, rsaVerify 
+from new_messageEncoder import encryptMessage, decryptMessage
+from new_rsaSigner import rsaSign, rsaVerify 
 from faker import Faker
+import html
 
 
 
@@ -175,7 +176,7 @@ def ParseInMessage (message):
             except Exception as e:
                 raise ValueError(e)
             
-            return message_info, msg_type
+            return html.escape(message_info), msg_type
             
             
         if parsed_message['data']['type'] == "public_chat":
