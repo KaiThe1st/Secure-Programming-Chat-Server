@@ -7,7 +7,7 @@
 
 from parseMessage import ParseOutMessage
 from parseMessage import ParseInMessage
-from rsaKeyGenerator import generate_key_pair
+from new_rsaKeyGenerator import generate_key_pair
 import os
 import asyncio
 import websockets
@@ -19,6 +19,7 @@ from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QTextEdit, QLineEdit, QLabel, QPushButton, QListWidget, QDialog, QFileDialog, QMessageBox
 from PyQt5 import QtCore
 from PyQt5.QtGui import QFont
+import html
 import logging
 
 # logging.basicConfig(level=logging.DEBUG)
@@ -27,12 +28,10 @@ ONLINE_USERS = []
 CURRENT_MODE = "public_chat"
 PARTICIPANTS = []
 
-# with open("./server_info.json", 'r') as server_info:
-#         data = json.load(server_info)
-#         ip = data['master_server_ip']
-#         port = data['master_server_port']
+# added by Khanh - 13/10/2024
+MAX_FILE_SIZE = 1024 * 1024 * 3 # 3MB
+MAX_MESSAGE_LENGTH = 140
 
-# SERVER_ADDRESS = f'{ip}:{port}'
 
 
 class UploadDialog(QDialog):
@@ -53,11 +52,20 @@ class UploadDialog(QDialog):
 
         self.setLayout(layout)
     def click_to_upload(self):
+        file_filter = "Text Files (*.txt);;Images (*.png *.jpg *.jpeg);;PDF Files (*.pdf)"
         file_path, _ = QFileDialog.getOpenFileName(self, "Select a File", "", 
-                                                   "All Files ();;Text Files (.txt);;Images (*.png *.jpg *.jpeg)", 
+                                                   file_filter, 
                                                    options=QFileDialog.Options())
         if file_path:
             self.file_label.setText(f'Selected File: {file_path}')
+            
+            # added by Khanh - 13/10/2024
+            if len(file_path) > 225:
+                self.file_label.setText("File name is too long, please choose a shorter name.")
+                return
+            if os.path.getsize(file_path) > MAX_FILE_SIZE:
+                self.status_label.setText(f"File size is too large, please choose a smaller file.")
+                return
             self.upload_file(file_path)
 
     def upload_file(self, file_path):
@@ -227,6 +235,10 @@ class G40chatApp(QMainWindow):
 
         # Message input (bottom)
         self.message_input = QLineEdit(self)
+        
+        ## added by Khanh - 13/10/2024
+        self.message_input.setMaxLength(MAX_MESSAGE_LENGTH)
+        
         self.message_input.setFixedHeight(60)
         font_input = QFont()
         font_input.setPointSize(14)
@@ -276,6 +288,9 @@ class G40chatApp(QMainWindow):
 
     def send_message(self):
         message = self.message_input.text()
+        
+        # html-escape added by Khanh - 13/10/2024
+        message = html.escape(message)
         if message:
             self.websocket_thread.send_message(message)
             # self.chat_display.append()

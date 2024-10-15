@@ -42,7 +42,7 @@ def rsaVerify(message, signature, pub_key):
     except (ValueError):
         raise ValueError("Invalid signature")
 
-
+#for testing this module seperately from the main program
 if __name__ == "__main__":
     signature = rsaSign("hello")
     with open("public_key.pem", "r") as f:

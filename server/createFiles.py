@@ -1,11 +1,4 @@
-# Code by Group UG40
-# Nathan Dang (a1794954@adelaide.edu.au)
-# Haydn Gaetdke (a1860571@adelaide.edu.au)
-# Quoc Khanh Duong (a1872857@adelaide.edu.au)
-# Dang Hoan Nguyen (a1830595@adelaide.edu.au)
-
-
-from rsaKeyGenerator import generate_key_pair
+from new_rsaKeyGenerator import generate_key_pair
 import os
 import json
 

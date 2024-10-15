@@ -15,6 +15,8 @@ import json
 import os
 # import logging
 import socket
+import re
+import html
 
 # logging.basicConfig(level=logging.DEBUG)
 
@@ -44,6 +46,8 @@ NEIGHBOURS = state['neighbours']
 ONLINE_NEIGHBOURS = {}
 ONLINE_NEIGHBOURS_SENT = []
 
+MAX_FILE_SIZE = 1024 * 1024 * 3 # 3MB
+MAX_MESSAGE_LENGTH = 140
 # internal_online_users[SELF_ADDRESS] = {}
 external_online_users = {}
 
@@ -257,6 +261,11 @@ async def ws_handler(request):
                 for client_id in internal_online_users:
                     socket = internal_online_users[client_id]['socket']
                     if socket != websocket:
+                        # Escape html tags and scripts (added by Khanh - 13/10/2024)
+                        
+                        # escaped_message = html.escape(message['data']['message'])
+                        # message['data']['message'] = escaped_message
+                        
                         await socket.send_bytes(message) 
                         
             else:
@@ -306,21 +315,48 @@ async def ws_handler(request):
 
 async def handle_upload_file(request):
     global SELF_ADDRESS
+        
     try:
         data = await request.post()
 
+        # added by Khanh - 13/10/2024
 
+        # Checking file size
         uploaded_file = data.get("file")
+        MAX_FILE_SIZE = 1024 * 1024 * 2
+        uploaded_file.file.seek(0,2) # the second parameter "whence" means the position of the file pointer 
+                                 # current position is relative to the end of the file
+        file_size = uploaded_file.file.tell()
+        if file_size > MAX_FILE_SIZE:
+            response = {
+                "body": {
+                        "Error": "File size too large"
+                }
+            }
+            return web.Response(text=json.dumps(response), content_type='application/json', status=413)
+        
+        # Checking file extensions
+        allowed_types = ['txt','pdf','jpg', 'png']
+        ext = uploaded_file.filename.lower().split('.')[-1]
+        if ext not in allowed_types:
+            response = {
+            "body": {
+                "Error": "Invalid file type"
+                }
+            }
+            return web.Response(text=json.dumps(response), content_type="application/json", status=415)
+        
+        escaped_filename = re.sub(r"\s+","_",uploaded_file.filename)
 
         if uploaded_file == ("No data"):
             return web.Response(text="No Data")
 
-        with open(f"./upload/{uploaded_file.filename}", "wb") as fout:
+        with open(f"./upload/{escaped_filename}", "wb") as fout:
             fout.write(uploaded_file.file.read())
 
         response = {
             'body': {
-                'file_url': f"http://{SELF_ADDRESS}/upload/{uploaded_file.filename}"
+                'file_url': f"http://{SELF_ADDRESS}/upload/{escaped_filename}"
             }
         }
 

@@ -8,7 +8,7 @@
 import json
 import uuid
 from base64 import b64encode, b64decode
-from rsaSigner import rsaSign, rsaVerify
+from new_rsaSigner import rsaSign, rsaVerify
 
 
 def ValidateMessage(recv_counter, cached_counter):
@@ -188,6 +188,8 @@ def AssembleOutwardMessage (msg_type, subtype, message):
     
     with open("./state.json", 'w') as server_state_write:
         json.dump(server_state, server_state_write, indent=4) 
+    
+
     
     outward_message_json = json.dumps(outward_message).encode('utf-8')
     return outward_message_json

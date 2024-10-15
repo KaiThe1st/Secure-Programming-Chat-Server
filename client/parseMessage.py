@@ -7,9 +7,10 @@
 import json
 import hashlib
 from base64 import b64encode, b64decode
-from messageEncoder import encryptMessage, decryptMessage
-from rsaSigner import rsaSign, rsaVerify 
+from new_messageEncoder import encryptMessage, decryptMessage
+from new_rsaSigner import rsaSign, rsaVerify 
 from faker import Faker
+import html
 
 
 
@@ -181,7 +182,7 @@ def ParseInMessage (message):
             except Exception as e:
                 raise ValueError(e)
             
-            return message_info, msg_type
+            return html.escape(message_info), msg_type
             
             
         if parsed_message['data']['type'] == "public_chat":
@@ -221,8 +222,6 @@ def ParseInMessage (message):
         
         for client in client_state['online_users']:
             for pub_k in client['clients']:
-                
-                print(pub_k)
                 fp = hashlib.sha256(pub_k.encode()).hexdigest()
                 if fp not in client_state['NS']:
                     client_state['NS'][fp] ={}
