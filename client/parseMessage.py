@@ -177,12 +177,12 @@ def ParseInMessage (message):
                     if fp == chat['participants'][0]:
                         message_info['sender'] = "&lt;&lt; <span style='color:blue'>[FROM]</span> " + state_data['NS'][fp]['name']
                         message_info['color'] = state_data['NS'][fp]['color']            
-                        message_info['message'] = chat['message']
+                        message_info['message'] = html.escape(chat['message'] )
                         # message_info['fingerprint'] = fp            
             except Exception as e:
                 raise ValueError(e)
             
-            return html.escape(message_info), msg_type
+            return message_info, msg_type
             
             
         if parsed_message['data']['type'] == "public_chat":
@@ -200,7 +200,7 @@ def ParseInMessage (message):
                     raise ValueError("Invalid signature")
             message_info['sender'] = "&lt;&lt; <span style='color:red'>[PUBLIC CHAT]</span> <span style='color:blue'>[FROM]</span> " + state_data['NS'][sender_fp]['name']
             message_info['color'] = state_data['NS'][sender_fp]['color']            
-            message_info['message'] = parsed_message['data']['message'] 
+            message_info['message'] = html.escape(parsed_message['data']['message'] )
             # message_info['fingerprint'] = fp            
                  
         

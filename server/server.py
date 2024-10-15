@@ -16,8 +16,8 @@ import os
 # import logging
 import socket
 import re
-import html
-
+from datetime import datetime
+import hashlib
 # logging.basicConfig(level=logging.DEBUG)
 
 from aiohttp import web, ClientConnectorError, WSServerHandshakeError
@@ -180,7 +180,18 @@ async def ws_handler(request):
                     client_update_res_message = AssembleOutwardMessage("client_update", "", internal_online_users_for_sending)
                     for server_address in ONLINE_NEIGHBOURS:
                         # client_update_message = AssembleOutwardMessage("")
-                        await ONLINE_NEIGHBOURS[server_address]['socket'].send(client_update_res_message)
+                        # await ONLINE_NEIGHBOURS[server_address]['socket'].send(client_update_res_message)
+                        try:
+                            await ONLINE_NEIGHBOURS[neighbour]['socket'].send(client_update_res_message)
+                        except AttributeError:
+                            await ONLINE_NEIGHBOURS[neighbour]['socket'].send_str(client_update_res_message)
+                        except Exception as e:
+                            print(f"Not exist socket: {e}")
+                            try:
+                                async with websockets.connect(neigbour) as websocket:
+                                    websocket.send(client_update_res_message)
+                            except Exception as e:
+                                print(f"Failed to establish connection {e}")
                     
                     
                     await websocket.send_str("Connection established")
@@ -197,16 +208,27 @@ async def ws_handler(request):
                 all_online_users = ProcessOnlineUsersList(internal_online_users, SELF_ADDRESS, external_online_users)
                 client_list_res_mess = AssembleOutwardMessage("client_list", "", all_online_users)
                 await websocket.send_bytes(client_list_res_mess)
+
             
             # HANDLE REQUEST FOR CLIENT UPDATE FROM SERVERS
             elif type == "client_update_request" and from_server == 1:
                 internal_clients = ProcessOnlineUsersList(internal_online_users, SELF_ADDRESS, {})
                 client_update_res_mess = AssembleOutwardMessage("client_update", "", internal_clients)
-                await websocket.send_bytes(client_update_res_mess)
                 
+                try:    
+                    await websocket.send_bytes(client_update_res_mess)
+                except AttributeError:
+                    await websocket.send(client_update_res_mess)
+                except Exception as e:
+                    print(f"Not exist socket: {e}")
+                    try:
+                        async with websockets.connect(neigbour) as websocket:
+                            websocket.send(message)
+                    except Exception as e:
+                        print(f"Failed to establish connection {e}")
             
             # HANDLE CLIENT UPDATE
-            elif type == "client_update": # and from_server == 1:
+            elif type == "client_update":
                 
                 distant_ip, distant_port = request.transport.get_extra_info('peername')
                 distant_address = f"{distant_ip.strip()}:{distant_port}"
@@ -236,9 +258,15 @@ async def ws_handler(request):
                         # if neighbour in parsed_message['data']['destination_servers'] and prev != neigbour:
                         try:
                             await ONLINE_NEIGHBOURS[neighbour]['socket'].send(message)
-                            # prev = neighbour
+                        except AttributeError:
+                            await ONLINE_NEIGHBOURS[neighbour]['socket'].send_str(message)
                         except Exception as e:
-                            print(e)
+                            print(f"Not exist socket: {e}")
+                            try:
+                                async with websockets.connect(neigbour) as websocket:
+                                    websocket.send(message)
+                            except Exception as e:
+                                print(f"Failed to establish connection {e}")
 
                 # Send the message to all online clients
                 for client_id in internal_online_users:
@@ -254,18 +282,20 @@ async def ws_handler(request):
                     for neighbour in ONLINE_NEIGHBOURS:
                         try:
                             await ONLINE_NEIGHBOURS[neighbour]['socket'].send(message)
+                        except AttributeError:
+                            await ONLINE_NEIGHBOURS[neighbour]['socket'].send_str(message)
                         except Exception as e:
-                            print(e)
+                            print(f"Not exist socket: {e}")
+                            try:
+                                async with websockets.connect(neigbour) as websocket:
+                                    websocket.send(message)
+                            except Exception as e:
+                                print(f"Failed to establish connection {e}")
                 
                 # Send the message to all online clients connected to this master server
                 for client_id in internal_online_users:
                     socket = internal_online_users[client_id]['socket']
                     if socket != websocket:
-                        # Escape html tags and scripts (added by Khanh - 13/10/2024)
-                        
-                        # escaped_message = html.escape(message['data']['message'])
-                        # message['data']['message'] = escaped_message
-                        
                         await socket.send_bytes(message) 
                         
             else:
@@ -350,13 +380,27 @@ async def handle_upload_file(request):
 
         if uploaded_file == ("No data"):
             return web.Response(text="No Data")
-
-        with open(f"./upload/{escaped_filename}", "wb") as fout:
+        
+        current_time = datetime.now()
+        unix_timestamp = int(current_time.timestamp())
+        escaped_filename += f"{unix_timestamp}"
+        
+        # Create a SHA-1 hash object
+        sha256_hash = hashlib.sha256()
+        
+        # Update the hash object with the bytes of the string
+        sha256_hash.update(escaped_filename.encode('utf-8'))
+        
+        # Get the hexadecimal representation of the hash
+        hashed_filename = sha256_hash.hexdigest()
+        
+        with open(f"./upload/{hashed_filename}.{ext}", "wb") as fout:
+            uploaded_file.file.seek(0,0) 
             fout.write(uploaded_file.file.read())
 
         response = {
             'body': {
-                'file_url': f"http://{SELF_ADDRESS}/upload/{escaped_filename}"
+                'file_url': f"http://{SELF_ADDRESS}/upload/{hashed_filename}.{ext}"
             }
         }
 
