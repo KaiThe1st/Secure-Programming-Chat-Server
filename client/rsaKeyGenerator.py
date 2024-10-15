@@ -1,6 +1,11 @@
+# Code by Group UG40:
+# Nathan Dang (a1794954@adelaide.edu.au)
+# Haydn Gaetdke (a1860571@adelaide.edu.au)
+# Quoc Khanh Duong (a1872857@adelaide.edu.au)
+# Dang Hoan Nguyen (a1830595@adelaide.edu.au)
+
+
 from Cryptodome.PublicKey import RSA
-
-
 PASSPHRASE = "G40" 
 
 def generate_key_pair():
