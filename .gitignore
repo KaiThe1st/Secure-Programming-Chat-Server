@@ -2,10 +2,27 @@
 /client/public_key.pem
 /client/client_state.json
 /client/server_info.json
+/client/app.py
+/client/local/
 
+/client/download/*
+
+/server/testserver.py
+/server/server2.py
+/server/server3.py
+
+/server/private_key.pem
+/server/public_key.pem
 /server/state.json
-/client/appwui1.py
-/client/localtestfile.py
-/client/template.json
+/server/upload/*
+/client/download/*
 
-/py_cache/
+/client/__pycache__/
+
+/server/server2.py
+/server/__pycache__/
+/server/public_key.pem
+/server/private_key.pem
+/server/local/
+
+/local/*

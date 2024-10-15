@@ -1,3 +1,10 @@
+# Code by Group UG40
+# Nathan Dang (a1794954@adelaide.edu.au)
+# Haydn Gaetdke (a1860571@adelaide.edu.au)
+# Quoc Khanh Duong (a1872857@adelaide.edu.au)
+# Dang Hoan Nguyen (a1830595@adelaide.edu.au)
+
+
 from datetime import datetime
 
 def eventLogger (event, status, subject, additional_info):
@@ -18,8 +25,17 @@ def eventLogger (event, status, subject, additional_info):
         print(f"[{now}]: CLIENT {subject} CONNECTED")
         return
         
+    if event == "signed_data_server_hello":
+        print(f"[{now}]: SERVER {subject} CONNECTED")
+        return
+        
+        
     if event == "signed_data_chat":
         print(f"[{now}]: RECV a message from {subject}")
+        return
+    
+    if event == "signed_data_public_chat":
+        print(f"[{now}]: RECV a public message from {subject}")
         return
     
     if event == "client_list_request":
