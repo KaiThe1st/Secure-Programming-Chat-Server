@@ -51,34 +51,17 @@ def ParseOutMessage (message, msg_type, subtype, receiver, online_users):
             parsedMessage['data']['public_key'] = PUBLIC_KEY
 
             
-            # what does this section do?
-            # key_bytes = b64decode(PUBLIC_KEY)
-            # key_bytes = PUBLIC_KEY.encode('ascii')
-            # SIGNATURE = hashlib.sha256(key_bytes).digest()
-            # SIGNATURE = b64encode(SIGNATURE).decode('utf-8')
-
-            
-            
         # No encrytion or encoding yet
         if subtype == "chat":
             parsedMessage['data']['destination_servers'] = []
             parsedMessage['data']['iv'] = ""
             parsedMessage['data']['symm_keys'] = []
             parsedMessage['data']['chat'] = {}
-            # parsedMessage['data']['client_info'] = {}
-            # parsedMessage['data']['client_info']['client_id'] = []
-            # parsedMessage['data']['client_info']['server_id'] = []
-            # parsedMessage['time-to-die'] = [] # UTC timestamp (1 minute)
-            
-            # parsedMessage['authTag'] = "" # is necessary?
-            
             parsedMessage['data']['chat']['participants'] = []
             
             with open("./client_state.json", 'r') as file:
                 client_state = json.load(file)
-                # if PUBLIC_KEY in recipients:
-                #     recipients.remove(PUBLIC_KEY)
-                #     recipients.insert(0, PUBLIC_KEY)
+
                 receiver.insert(0, FINGERPRINT)
                     
             pub_k_list = []
@@ -89,7 +72,6 @@ def ParseOutMessage (message, msg_type, subtype, receiver, online_users):
                 parsedMessage['data']['destination_servers'].append(client_state['NS'][fp]['server'])
                 pub_k_list.append(client_state['NS'][fp]['public_key'])
 
-                # parsedMessage['data']['destination_servers']
             cipher_chat, iv, sym_key = encryptMessage(message, receiver, pub_k_list)
             parsedMessage['data']['chat'] = b64encode(cipher_chat).decode('utf8')
             parsedMessage['data']['iv'] = b64encode(iv).decode('utf8')
@@ -112,21 +94,16 @@ def ParseOutMessage (message, msg_type, subtype, receiver, online_users):
         data_json_string += str(parsedMessage['counter'])
         SIGNATURE = rsaSign(data_json_string)
         parsedMessage['signature'] = b64encode(SIGNATURE).decode()
-        # parsedMessage['signature'] = "Kai"
-        
-        # with open('./client_state.json', 'w') as client_state_dump:
-        #     json.dump(state_data, client_state_dump, indent=4)
         
         with open('./client_state.json', 'w') as client_state_dump:
             json.dump(state_data, client_state_dump, indent=4)
             
     elif msg_type == "client_list_request":
-        # parsedMessage['type'] = type
         pass
 
                 
     
-    parsedJsonMessage = json.dumps(parsedMessage).encode('utf-8')
+    parsedJsonMessage = json.dumps(parsedMessage)
     
     
     return parsedJsonMessage
@@ -135,7 +112,7 @@ def ParseInMessage (message):
     print("--------------")
     print(message)
     print('-----------------')
-    parsed_message = message.decode('utf-8')
+    parsed_message = message 
     parsed_message = json.loads(parsed_message)
 
     msg_type = parsed_message['type']
@@ -214,12 +191,6 @@ def ParseInMessage (message):
         
         client_state['online_users'] = parsed_message['servers']
         
-        # added from Khanh
-        #--
-        print("++++++++++")
-        print(client_state)
-        print("++++++++++")
-        
         for client in client_state['online_users']:
             for pub_k in client['clients']:
                 fp = hashlib.sha256(pub_k.encode()).hexdigest()
@@ -232,7 +203,5 @@ def ParseInMessage (message):
                             
             with open('./client_state.json', 'w') as fout:
                 json.dump(client_state, fout, indent=4)
-        #--        
 
-    # return parsed_message, msg_type
     return parsed_message, msg_type

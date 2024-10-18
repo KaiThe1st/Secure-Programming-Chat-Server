@@ -1,3 +1,9 @@
+# Code by Group UG40:
+# Nathan Dang (a1794954@adelaide.edu.au)
+# Haydn Gaetdke (a1860571@adelaide.edu.au)
+# Quoc Khanh Duong (a1872857@adelaide.edu.au)
+# Dang Hoan Nguyen (a1830595@adelaide.edu.au)
+
 import json
 import hashlib
 from base64 import b64encode, b64decode
@@ -42,15 +48,6 @@ def ParseOutMessage (message, msg_type, subtype, receiver, online_users):
             # Parse public key and generate signature
             PUBLIC_KEY = (open("./public_key.pem", 'r').read())
             parsedMessage['data']['public_key'] = PUBLIC_KEY
-
-            
-            # what does this section do?
-            # key_bytes = b64decode(PUBLIC_KEY)
-            # key_bytes = PUBLIC_KEY.encode('ascii')
-            # SIGNATURE = hashlib.sha256(key_bytes).digest()
-            # SIGNATURE = b64encode(SIGNATURE).decode('utf-8')
-
-            
             
         # No encrytion or encoding yet
         if subtype == "chat":
@@ -58,20 +55,11 @@ def ParseOutMessage (message, msg_type, subtype, receiver, online_users):
             parsedMessage['data']['iv'] = ""
             parsedMessage['data']['symm_keys'] = []
             parsedMessage['data']['chat'] = {}
-            # parsedMessage['data']['client_info'] = {}
-            # parsedMessage['data']['client_info']['client_id'] = []
-            # parsedMessage['data']['client_info']['server_id'] = []
-            # parsedMessage['time-to-die'] = [] # UTC timestamp (1 minute)
-            
-            # parsedMessage['authTag'] = "" # is necessary?
             
             parsedMessage['data']['chat']['participants'] = []
             
             with open("./client_state.json", 'r') as file:
                 client_state = json.load(file)
-                # if PUBLIC_KEY in recipients:
-                #     recipients.remove(PUBLIC_KEY)
-                #     recipients.insert(0, PUBLIC_KEY)
                 receiver.insert(0, FINGERPRINT)
                     
             pub_k_list = []
@@ -82,7 +70,6 @@ def ParseOutMessage (message, msg_type, subtype, receiver, online_users):
                 parsedMessage['data']['destination_servers'].append(client_state['NS'][fp]['server'])
                 pub_k_list.append(client_state['NS'][fp]['public_key'])
 
-                # parsedMessage['data']['destination_servers']
             cipher_chat, iv, sym_key = encryptMessage(message, receiver, pub_k_list)
             parsedMessage['data']['chat'] = b64encode(cipher_chat).decode('utf8')
             parsedMessage['data']['iv'] = b64encode(iv).decode('utf8')
@@ -105,16 +92,11 @@ def ParseOutMessage (message, msg_type, subtype, receiver, online_users):
         data_json_string += str(parsedMessage['counter'])
         SIGNATURE = rsaSign(data_json_string)
         parsedMessage['signature'] = b64encode(SIGNATURE).decode()
-        # parsedMessage['signature'] = "Kai"
-        
-        # with open('./client_state.json', 'w') as client_state_dump:
-        #     json.dump(state_data, client_state_dump, indent=4)
-        
+                
         with open('./client_state.json', 'w') as client_state_dump:
             json.dump(state_data, client_state_dump, indent=4)
             
     elif msg_type == "client_list_request":
-        # parsedMessage['type'] = type
         pass
 
                 
@@ -171,7 +153,6 @@ def ParseInMessage (message):
                         message_info['sender'] = "&lt;&lt; <span style='color:blue'>[FROM]</span> " + state_data['NS'][fp]['name']
                         message_info['color'] = state_data['NS'][fp]['color']            
                         message_info['message'] = chat['message']
-                        # message_info['fingerprint'] = fp            
             except Exception as e:
                 raise ValueError(e)
             
@@ -193,9 +174,7 @@ def ParseInMessage (message):
                     raise ValueError("Invalid signature")
             message_info['sender'] = "&lt;&lt; <span style='color:red'>[PUBLIC CHAT]</span> <span style='color:blue'>[FROM]</span> " + state_data['NS'][sender_fp]['name']
             message_info['color'] = state_data['NS'][sender_fp]['color']            
-            message_info['message'] = parsed_message['data']['message'] 
-            # message_info['fingerprint'] = fp            
-                 
+            message_info['message'] = parsed_message['data']['message']                  
         
             return message_info, msg_type
 
@@ -207,11 +186,6 @@ def ParseInMessage (message):
         
         client_state['online_users'] = parsed_message['servers']
         
-        # added from Khanh
-        #--
-        print("++++++++++")
-        print(client_state)
-        print("++++++++++")
         
         for client in client_state['online_users']:
             for pub_k in client['clients']:
@@ -227,7 +201,6 @@ def ParseInMessage (message):
                             
             with open('./client_state.json', 'w') as fout:
                 json.dump(client_state, fout, indent=4)
-        #--        
 
     # return parsed_message, msg_type
     return parsed_message, msg_type

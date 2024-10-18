@@ -162,8 +162,7 @@ class PrivateChatDialog(QtWidgets.QDialog):
             for person_id, person_data in people.items():
                 if person_id != chat_data['fingerprint']:
                     self.user_list.addItem(person_data['name'])
-            # for entry in people:
-            #     self.user_list.addItem(entry['name'])
+
 
         self.user_list.setSelectionMode(QtWidgets.QAbstractItemView.MultiSelection)  # Allow multiple selections
         layout.addWidget(self.user_list)
@@ -178,7 +177,6 @@ class PrivateChatDialog(QtWidgets.QDialog):
         selected_items = self.user_list.selectedItems()
         if selected_items:
             users = [item.text() for item in selected_items]  # Get a list of selected users
-            # print(f"Creating private chat with: {', '.join(users)}")
             self.accept()  # Close the dialog
             self.result = users  # Return the list of selected users
 
@@ -203,12 +201,6 @@ class G40chatApp(QMainWindow):
         # Add "Public Chat" at the start
         self.side_menu.addItem("Public Chat")
         
-        # with open("./client_state.json", "r") as client_state:
-        #     state_data = json.load(client_state)
-        
-        # for signature in state_data['NS']:
-        #     self.side_menu.addItem(state_data['NS'][signature]['name'])
-            
         self.side_menu.itemClicked.connect(self.change_chat)
         
 
@@ -246,9 +238,6 @@ class G40chatApp(QMainWindow):
         self.message_input.returnPressed.connect(self.send_message)
         
         
-        # self.upload_button = QPushButton("Upload File", self)
-        # self.upload_button.setFixedHeight(60)
-        # # self.upload_button.setFont(font)
         self.send_button = QPushButton("Send", self)
         self.send_button.setFixedHeight(60)
         self.send_button.setFont(font_input)
@@ -270,7 +259,6 @@ class G40chatApp(QMainWindow):
         chat_layout.addWidget(self.chat_display)
         
         input_layout = QHBoxLayout()
-        # input_layout.addWidget(self.upload_button)
         input_layout.addWidget(self.message_input)
         input_layout.addWidget(self.send_button)
 
@@ -396,8 +384,6 @@ class G40chatApp(QMainWindow):
         global PARTICIPANTS, CURRENT_MODE
         selected_chat = item.text()
         self.chat_display_title.setText(selected_chat)
-        
-        # print(CURRENT_MODE)
         
         if selected_chat == "Public Chat":
             self.current_chat = "public_chat"

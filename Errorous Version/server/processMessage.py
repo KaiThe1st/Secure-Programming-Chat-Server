@@ -1,3 +1,10 @@
+# Code by Group UG40
+# Nathan Dang (a1794954@adelaide.edu.au)
+# Haydn Gaetdke (a1860571@adelaide.edu.au)
+# Quoc Khanh Duong (a1872857@adelaide.edu.au)
+# Dang Hoan Nguyen (a1830595@adelaide.edu.au)
+
+
 import json
 import uuid
 from base64 import b64encode, b64decode
@@ -30,10 +37,7 @@ def ProcessInMessage(message, client_id, from_server: bool):
     if type == "signed_data":
         if sent_from == "-1" and not from_server and parsed_message['data']['type'] != "hello":
             return None, 0, None,None, None
-        
-        # if not from_server and parsed_message['data']['type'] != "server_hello":
-        #     return None, 0, None,None, None
-        
+            
         if sent_from != "-1" and not from_server\
             and ValidateMessage(parsed_message['counter'], server_state['clients'][sent_from]['counter']) == False:
             return None, 0, None, None, None
@@ -94,7 +98,7 @@ def ProcessInMessage(message, client_id, from_server: bool):
             status = 1 
             log_message = f"Connection Establised"     
         
-        elif parsed_message['data']['type'] == "server_hello": # and from_server:
+        elif parsed_message['data']['type'] == "server_hello": 
             type += "_server_hello"
             
             # Verify signature
@@ -125,10 +129,10 @@ def ProcessInMessage(message, client_id, from_server: bool):
     elif type == "client_list_request" and sent_from != "-1":
         log_message = "Received online user list request"
         # print(parsed_message['type'])
-    elif type == "client_update_request":# and from_server:
+    elif type == "client_update_request":
         log_message = "Received online user list update request"
         # pass
-    elif type == "client_update":# and from_server:
+    elif type == "client_update":
         log_message = "Received online user list update"
         # pass
     else:

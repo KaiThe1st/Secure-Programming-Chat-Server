@@ -1,4 +1,11 @@
-from new_rsaKeyGenerator import generate_key_pair
+# Code by Group UG40
+# Nathan Dang (a1794954@adelaide.edu.au)
+# Haydn Gaetdke (a1860571@adelaide.edu.au)
+# Quoc Khanh Duong (a1872857@adelaide.edu.au)
+# Dang Hoan Nguyen (a1830595@adelaide.edu.au)
+
+
+from rsaKeyGenerator import generate_key_pair
 import os
 import json
 
@@ -14,5 +21,7 @@ def createFiles():
         with open('state.json', 'w') as f:
             json.dump(server_state, f, indent=4)
             
+            
+
 if __name__ == "__main__":
     createFiles()

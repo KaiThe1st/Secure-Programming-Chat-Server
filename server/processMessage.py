@@ -24,7 +24,7 @@ def ProcessInMessage(message, client_id, from_server: bool):
     log_message = "Message received."
     sent_from = client_id
     
-    parsed_message = message.decode('utf-8')
+    parsed_message = message #.decode('utf-8')
     parsed_message = json.loads(parsed_message)
     
     type = parsed_message['type']
@@ -35,15 +35,18 @@ def ProcessInMessage(message, client_id, from_server: bool):
     
     
     if type == "signed_data":
-        if sent_from == "-1" and not from_server and parsed_message['data']['type'] != "hello":
-            return None, 0, None,None, None
+        
+        #### If testing interoperability, just uncomment when the two server are hosted on different IPs
+        
+        # if sent_from == "-1" and not from_server and parsed_message['data']['type'] != "hello":
+        #     return None, 0, None,None, None
         
         # if not from_server and parsed_message['data']['type'] != "server_hello":
         #     return None, 0, None,None, None
         
-        if sent_from != "-1" and not from_server\
-            and ValidateMessage(parsed_message['counter'], server_state['clients'][sent_from]['counter']) == False:
-            return None, 0, None, None, None
+        # if sent_from != "-1" and not from_server\
+        #     and ValidateMessage(parsed_message['counter'], server_state['clients'][sent_from]['counter']) == False:
+        #     return None, 0, None, None, None
         
         decoded_signature =  b64decode(parsed_message['signature'])
         recv_counter = parsed_message['counter']
@@ -63,13 +66,10 @@ def ProcessInMessage(message, client_id, from_server: bool):
         elif parsed_message['data']['type'] == "hello":
             type += "_hello"
             data = parsed_message['data']
-
-            
                 
             client_found_in_server = False
             for client_id in server_state['clients']:
                 if server_state['clients'][client_id]['public_key'] == data['public_key']:
-                    # print(f"Existing client {client_id}")
                     server_state['clients'][client_id]['counter'] = recv_counter
                     client_found_in_server = True
                     sent_from = client_id
@@ -129,7 +129,7 @@ def ProcessInMessage(message, client_id, from_server: bool):
                 return None, 0, None, None, None
             
             
-    elif type == "client_list_request" and sent_from != "-1":
+    elif type == "client_list_request": # and sent_from != "-1":
         log_message = "Received online user list request"
         # print(parsed_message['type'])
     elif type == "client_update_request":# and from_server:
@@ -191,7 +191,7 @@ def AssembleOutwardMessage (msg_type, subtype, message):
     
 
     
-    outward_message_json = json.dumps(outward_message).encode('utf-8')
+    outward_message_json = json.dumps(outward_message) #.encode('utf-8')
     return outward_message_json
 
 

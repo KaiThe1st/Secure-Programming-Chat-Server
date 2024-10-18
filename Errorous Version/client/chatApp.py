@@ -1,3 +1,9 @@
+# Code by Group UG40:
+# Nathan Dang (a1794954@adelaide.edu.au)
+# Haydn Gaetdke (a1860571@adelaide.edu.au)
+# Quoc Khanh Duong (a1872857@adelaide.edu.au)
+# Dang Hoan Nguyen (a1830595@adelaide.edu.au)
+
 
 from parseMessage import ParseOutMessage
 from parseMessage import ParseInMessage
@@ -20,13 +26,6 @@ ONLINE_USERS = []
 
 CURRENT_MODE = "public_chat"
 PARTICIPANTS = []
-
-# with open("./server_info.json", 'r') as server_info:
-#         data = json.load(server_info)
-#         ip = data['master_server_ip']
-#         port = data['master_server_port']
-
-# SERVER_ADDRESS = f'{ip}:{port}'
 
 
 class UploadDialog(QDialog):
@@ -148,8 +147,6 @@ class PrivateChatDialog(QtWidgets.QDialog):
             for person_id, person_data in people.items():
                 if person_id != chat_data['fingerprint']:
                     self.user_list.addItem(person_data['name'])
-            # for entry in people:
-            #     self.user_list.addItem(entry['name'])
 
         self.user_list.setSelectionMode(QtWidgets.QAbstractItemView.MultiSelection)  # Allow multiple selections
         layout.addWidget(self.user_list)
@@ -188,12 +185,6 @@ class G40chatApp(QMainWindow):
         
         # Add "Public Chat" at the start
         self.side_menu.addItem("Public Chat")
-        
-        # with open("./client_state.json", "r") as client_state:
-        #     state_data = json.load(client_state)
-        
-        # for signature in state_data['NS']:
-        #     self.side_menu.addItem(state_data['NS'][signature]['name'])
             
         self.side_menu.itemClicked.connect(self.change_chat)
         
@@ -227,10 +218,6 @@ class G40chatApp(QMainWindow):
         self.message_input.setFont(font_input)
         self.message_input.returnPressed.connect(self.send_message)
         
-        
-        # self.upload_button = QPushButton("Upload File", self)
-        # self.upload_button.setFixedHeight(60)
-        # # self.upload_button.setFont(font)
         self.send_button = QPushButton("Send", self)
         self.send_button.setFixedHeight(60)
         self.send_button.setFont(font_input)
@@ -252,7 +239,6 @@ class G40chatApp(QMainWindow):
         chat_layout.addWidget(self.chat_display)
         
         input_layout = QHBoxLayout()
-        # input_layout.addWidget(self.upload_button)
         input_layout.addWidget(self.message_input)
         input_layout.addWidget(self.send_button)
 
@@ -272,7 +258,6 @@ class G40chatApp(QMainWindow):
         message = self.message_input.text()
         if message:
             self.websocket_thread.send_message(message)
-            # self.chat_display.append()
             self.message_input.clear()
 
     def display_message(self, message):
@@ -451,7 +436,6 @@ class WebsocketConnection(QtCore.QThread):
                 helloMessage = ParseOutMessage("", "signed_data", "hello", [], ONLINE_USERS)
                 await self.websocket.send(helloMessage)
                 response = await self.websocket.recv()
-                # print(response)
 
                 # Request online clients in approachable servers
                 requestClientList = ParseOutMessage("", "client_list_request", "", [], ONLINE_USERS)
@@ -494,7 +478,6 @@ class WebsocketConnection(QtCore.QThread):
                             </div>
                             """
                             self.message_received.emit(displye_msg) 
-                            # self.message_received.emit(f"<div style='width:100%'><span style='width:70%'; background-color:blue;border-radius:5px;color:{msg['color']}'>{msg['sender']}: {msg['message']}</span></div>") 
                     except websockets.ConnectionClosedOK:
                         print('See you next time.')
                         break
@@ -542,6 +525,8 @@ class WebsocketConnection(QtCore.QThread):
                 </span>
             </div>
             """
+        if len(PARTICIPANTS) > 0:
+            PARTICIPANTS.pop(0)
         self.message_received.emit(displye_msg) 
         
 
@@ -569,9 +554,12 @@ with open("client_state.json", "w") as file:
 
 if (not(os.path.isfile("server_info.json"))):
     with open("server_info.example.json", "r") as file:
-        client_state = json.load(file)
+        server_info = json.load(file)
+        server_info["master_server_counter"] = 0
+        server_info["master_server_port"] = 8080
+        server_info["master_server_ip"] = "localhost"
     with open("server_info.json", "w") as file:
-        json.dump(client_state, file, indent=4)
+        json.dump(server_info, file, indent=4)
         
 with open("./server_info.json", 'r') as server_info:
     data = json.load(server_info)

@@ -32,8 +32,6 @@ def generate_key_pair():
     with open("public_key.pem",'wb') as file:
         file.write(public_key_bytes)
 
-    # print("Keys generated successfully!")
-
 
 #for testing this module seperately from the main program
 if __name__ == "__main__":

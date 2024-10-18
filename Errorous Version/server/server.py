@@ -1,3 +1,10 @@
+# Code by Group UG40
+# Nathan Dang (a1794954@adelaide.edu.au)
+# Haydn Gaetdke (a1860571@adelaide.edu.au)
+# Quoc Khanh Duong (a1872857@adelaide.edu.au)
+# Dang Hoan Nguyen (a1830595@adelaide.edu.au)
+
+
 import asyncio
 import websockets
 from processMessage import ProcessInMessage
@@ -6,9 +13,8 @@ from processMessage import AssembleOutwardMessage
 from eventLogger import eventLogger
 import json
 import os
-import logging
+# import logging
 import socket
-from rsaKeyGenerator import generate_key_pair
 
 # logging.basicConfig(level=logging.DEBUG)
 
@@ -22,14 +28,10 @@ internal_online_users = {
 IP = socket.gethostbyname(socket.gethostname())
 
 if (not(os.path.isfile("private_key.pem") and os.path.isfile("public_key.pem"))):
-    generate_key_pair()
-    
+    raise ValueError("Key not found. Please run createFile.py")
 if (not(os.path.isfile("state.json"))):
-    with open('state.example.json', 'r') as f:
-        server_state = json.load(f)
-        server_state['neighbours'] = []
-    with open('state.json', 'w') as f:
-        json.dump(server_state, f, indent=4)
+    raise ValueError("State file not found. Please run createFile.py and populate neighbour informations")
+
 
 with open("./state.json", 'r') as server_state:
     state = json.load(server_state)
@@ -42,13 +44,12 @@ NEIGHBOURS = state['neighbours']
 ONLINE_NEIGHBOURS = {}
 ONLINE_NEIGHBOURS_SENT = []
 
-# internal_online_users[SELF_ADDRESS] = {}
 external_online_users = {}
 
 async def server_startup(app):
     for idx in range(len(NEIGHBOURS)):
         
-        if NEIGHBOURS[idx]['address'].strip() == SELF_ADDRESS or NEIGHBOURS[idx]['address'].strip() in ONLINE_NEIGHBOURS_SENT: # or NEIGHBOURS[idx]['address'].strip() in ONLINE_NEIGHBOURS:
+        if NEIGHBOURS[idx]['address'].strip() == SELF_ADDRESS or NEIGHBOURS[idx]['address'].strip() in ONLINE_NEIGHBOURS_SENT:
             continue
         
         ONLINE_NEIGHBOURS_SENT.append(NEIGHBOURS[idx]['address'].strip())
@@ -69,16 +70,13 @@ async def init_server_connection(distant_address, idx):
             print(client_update_request_mess)
             await server_websocket.send(client_update_request_mess)
             print("here")
-            # server_websocket = await session.ws_connect(distant_address)
             if distant_address not in ONLINE_NEIGHBOURS:
                 ONLINE_NEIGHBOURS[distant_address] = {}
             ONLINE_NEIGHBOURS[distant_address]['socket'] = server_websocket
             ONLINE_NEIGHBOURS[distant_address]['counter'] = NEIGHBOURS[idx]['counter']
             print("ha")
-            # asyncio.create_task(keep_alive)
             
             while True:
-                # await websockets.recv()
                 await asyncio.sleep(10)
                 # print("hi")
                 continue
@@ -90,10 +88,7 @@ async def init_server_connection(distant_address, idx):
 # WebSocket server handler
 async def ws_handler(request):
     websocket = web.WebSocketResponse(heartbeat=30)
-    await websocket.prepare(request) 
-    
-    # await init_server_connection()
-       
+    await websocket.prepare(request)        
     
     async for msg in websocket:
         global internal_online_users
@@ -119,9 +114,7 @@ async def ws_handler(request):
 
 
 
-            if from_user == "-1":
-                # if request is not None:
-                    
+            if from_user == "-1":                    
                 distant_ip, distant_port = request.transport.get_extra_info('peername')
                 distant_address = f"{distant_ip.strip()}"
                 print(distant_address)
@@ -130,7 +123,6 @@ async def ws_handler(request):
                         from_server = 1
                         break
    
-            
             # Process the Message
             # type: a message type as defined in the protocol document in the form f"{type}_{sub_type}"
             # status : 
@@ -143,7 +135,6 @@ async def ws_handler(request):
                 continue
             
             if sent_from != "-1" or from_server == 1:
-                # await websocket.close(code=4000, reason="Limited one client on a host")
             
                 eventLogger(type, status, sent_from, log_message)
             
@@ -152,7 +143,6 @@ async def ws_handler(request):
                 # prevent multiconnection on a single client
                 if sent_from in internal_online_users \
                     and internal_online_users[sent_from]['socket'] is not websocket:
-                        # await web.Response(text="Access denied.", status=403)
                         continue
                 
                 if sent_from not in internal_online_users:
@@ -173,7 +163,6 @@ async def ws_handler(request):
                     internal_online_users_for_sending = ProcessOnlineUsersList(internal_online_users, SELF_ADDRESS, {})
                     client_update_res_message = AssembleOutwardMessage("client_update", "", internal_online_users_for_sending)
                     for server_address in ONLINE_NEIGHBOURS:
-                        # client_update_message = AssembleOutwardMessage("")
                         await ONLINE_NEIGHBOURS[server_address]['socket'].send(client_update_res_message)
                     
                     
@@ -200,7 +189,7 @@ async def ws_handler(request):
                 
             
             # HANDLE CLIENT UPDATE
-            elif type == "client_update": # and from_server == 1:
+            elif type == "client_update": 
                 
                 distant_ip, distant_port = request.transport.get_extra_info('peername')
                 distant_address = f"{distant_ip.strip()}:{distant_port}"
@@ -219,17 +208,14 @@ async def ws_handler(request):
                         await internal_online_users[client_id]['socket'].send_bytes(client_list_res_message)
                 
             # HANDLE CHAT
-            elif type == "signed_data_chat": # and sent_from != "-1":
+            elif type == "signed_data_chat":
                     
                 # Send the message to all online neighbour servers
                 if from_server == 0:
-                    # prev = ""
                     for neighbour in ONLINE_NEIGHBOURS:
                         # print(neigbour)
-                        # if neighbour in parsed_message['data']['destination_servers'] and prev != neigbour:
                         try:
                             await ONLINE_NEIGHBOURS[neighbour]['socket'].send(message)
-                            # prev = neighbour
                         except Exception as e:
                             print(e)
 
@@ -241,7 +227,7 @@ async def ws_handler(request):
                     
                         
             # HANDLE PUBLIC CHAT
-            elif type == "signed_data_public_chat": # and sent_from != "-1":
+            elif type == "signed_data_public_chat":
                 # Send message to neighbour servers when the message is from a client    
                 if from_server == 0:
                     for neighbour in ONLINE_NEIGHBOURS:
@@ -344,11 +330,9 @@ def main():
     app.router.add_post('/api/upload', handle_upload_file)
     app.router.add_get('/upload/{filename:.*}', handle_download_file)
     
-    # await init_server_connection()
     app.on_startup.append(server_startup)
     web.run_app(app, host="0.0.0.0", port=int(state['port']))
 
 # Run the server
 if __name__ == "__main__":
-    # asyncio.run(main())
     main()
